@@ -8,6 +8,8 @@ const mongodb_url = config.MONGODB_URL
 const cors = require('cors');
 const { testSupabaseConnection } = require("./src/config/supabase");
 
+const userRoute = require("./src/routes/user.route");
+
 testSupabaseConnection();
 
 app.use(cors({
@@ -26,6 +28,8 @@ app.listen(port, () =>{
 app.get('/', (req, res) => {
     res.send("API start working!")
 })
+
+app.use("/api/v1/user", userRoute);
 
 mongoose.connect(mongodb_url).then(() => {
     console.log("MongoDB is successfully connected!")

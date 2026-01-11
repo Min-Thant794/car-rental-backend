@@ -11,38 +11,23 @@ const userModelSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    phoneNumer: {
-        type: String,
-        required: true,
-        unique: true,
-        sparse: true,
-        set: v => v === "" ? undefined : v,
-        trim: true,
-        validate: (
-            function(v) {
-                return /^\+?[0-9]{7,15}$/.test(v);
-            }
-        )
-    },
     password: {
         type: String,
         required: true
     },
     role: {
+        type: String,
         enum: ["Admin", "Customer"],
-        required: true
+        default: "Customer"
     },
     profileImageUrl: {
         type: String,
         required: false
     },
-    licenseImageUrl: {
+    accountStatus: {
         type: String,
-        required: true
-    },
-    allowedPath: {
-        type: [String],
-        required: true
+        enum: ["active", "suspended", "deleted"],
+        default: "active"
     },
     active: {
         type: Boolean,
