@@ -60,19 +60,32 @@ const registerUser = async (req, res) => {
         });
         }
 
-        const { phoneNumber, dateOfBirth, licenseImageUrl, verificationStatus } = req.body;
+        const { phoneNumber, dateOfBirth, verificationStatus } = req.body;
+
+        const profileFile = req.files?.profileImageUrl?.[0];
+        const licenseFile = req.files?.licenseImageUrl?.[0];
+
+        let profileImageUrl = null;
+        let licenseImageUrl = null;
+
+        if(profileFile) {
+            profileImageUrl = await uploadImage(profileFile);
+        }
+
+        if(licenseFile) {
+            licenseImageUrl = await uploadImage(licenseFile);
+        }
 
         const user = await userModel.create({
             ...req.body,
+            profileImageUrl,
             password: encryption(req.body.password),
         });
 
         if(user.role === "Customer") {
-            if(!req.file) {
+            if(!licenseImageUrl) {
                 return res.status(400).json({ message: "License Image is required!", success: false});
             }
-
-            const licenseImageUrl = await uploadImage(req.file);
 
             await customerModel.create({
                 userId: user._id,
