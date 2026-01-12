@@ -72,7 +72,7 @@ const updateCarModel = async (req, res) => {
 
         if(!car) {
             return res.status(404).json({ message: "No Car found!", success: false });
-        }
+        };
 
         let finalData = {...req.body};
         const carImage = req.file;
@@ -81,14 +81,14 @@ const updateCarModel = async (req, res) => {
             if(car?.carImageUrl) {
                 await deleteImage(car?.carImageUrl);
             }
-            const newCarImageUrl = await uploadImage(carImage);
+            const newCarImageUrl = await uploadImage(carImage, config.SUPABASE_CAR_BUCKET);
             finalData.carImageUrl = newCarImageUrl;
         }
 
         const updatedCarModel = await carModel.findByIdAndUpdate(id, finalData, { new: true });
 
         if (updatedCarModel) {
-            return res.status(200).json({ message: "Car information updated successfully!", success: true});
+            return res.status(200).json({ message: "Car information updated successfully!", data: updatedCarModel, success: true});
         } else {
             return res.status(400).json({ message: "Failed to update car information!", success: false });
         }
@@ -106,11 +106,12 @@ const deleteCarModel = async (req, res) => {
             return res.status(404).json({ message: "No car found!", success: false });
         } else {
             await deleteImage(car?.carImageUrl);
-            var deletedCarModel = car.deleteOne();
         }
 
+        const deletedCarModel = await carModel.findByIdAndDelete(car);
+
         if(deletedCarModel) {
-            return res.status(200).json({ message: "Car model deteled successfully!", success: true });
+            return res.status(200).json({ message: "Car model deleted successfully!", success: true });
         } else {
             return res.status(400).json({ message: "Failed to delete car model!", success: false });
         }
