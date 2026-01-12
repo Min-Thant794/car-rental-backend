@@ -2,6 +2,7 @@ const userModel = require('../models/user.model');
 const customerModel = require('../models/customer.model');
 const { encryption, comparison } = require("../helper/encryptDecrypt");
 const { uploadImage, deleteImage } = require("../config/supabase");
+const config = require("../config/config");
 
 const getAllUsers = async (req, res) => {
   try {
@@ -44,8 +45,8 @@ const getAllUsers = async (req, res) => {
 
 const registerUser = async (req, res) => {
     try {
-        console.log("BODY: ", req.body);
-        console.log("FILE: ", req.file);
+        //console.log("BODY: ", req.body);
+        //console.log("FILE: ", req.file);
         const duplicateUser = await userModel.findOne({
             $or: [
                 {userName: req.body.userName},
@@ -69,11 +70,11 @@ const registerUser = async (req, res) => {
         let licenseImageUrl = null;
 
         if(profileFile) {
-            profileImageUrl = await uploadImage(profileFile);
+            profileImageUrl = await uploadImage(profileFile, config.SUPABASE_USER_BUCKET);
         }
 
         if(licenseFile) {
-            licenseImageUrl = await uploadImage(licenseFile);
+            licenseImageUrl = await uploadImage(licenseFile, config.SUPABASE_LICENSE_BUCKET);
         }
 
         const user = await userModel.create({
@@ -100,7 +101,7 @@ const registerUser = async (req, res) => {
             data: user,
             message: `User ${user.userName} has successfully created!`,
             success: true
-        })
+        });
 
     } catch (error) {
         if (error?.code === 11000) {
@@ -172,7 +173,7 @@ const updateUser = async (req, res) => {
             if(user?.profileImageUrl) {
                 await deleteImage(user?.profileImageUrl);
             }
-            const profileImageUrl = await uploadImage(profileFile);
+            const profileImageUrl = await uploadImage(profileFile, config.SUPABASE_USER_BUCKET);
             finalData.profileImageUrl = profileImageUrl;
         }
 
@@ -189,7 +190,7 @@ const updateUser = async (req, res) => {
                 if(customer?.licenseImageUrl) {
                     await deleteImage(customer?.licenseImageUrl);
                 }
-                const licenseImageUrl = await uploadImage(licenseFile);
+                const licenseImageUrl = await uploadImage(licenseFile, config.SUPABASE_LICENSE_BUCKET);
                 customerUpdate.licenseImageUrl = licenseImageUrl;
             }
 

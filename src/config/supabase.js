@@ -7,15 +7,12 @@ const supabaseClient = createClient(
     config.SUPABASE_SERVICE_ROLE
 );
 
-const fileStorage = supabaseClient.storage.from(config.SUPABASE_BUCKET);
-
 const upload = multer({ storage: multer.memoryStorage()});
 
-const uploadImage = async (file) => {
+const uploadImage = async (file, bucketName) => {
     try {
         const fileName = `${Date.now()}-${file.originalname}`;
-
-        
+        const fileStorage = supabaseClient.storage.from(bucketName);
         const { data, error } = await fileStorage.upload(
             fileName,
             file.buffer,
@@ -24,7 +21,6 @@ const uploadImage = async (file) => {
                 upsert: true
             }
         );
-
 
         if (error) {
             console.log("Failed to upload image to SupaBase!", error);
@@ -42,12 +38,13 @@ const uploadImage = async (file) => {
     }
 }
 
-const uploadImages = async (files) => {
+const uploadImages = async (files, bucketName) => {
     try {
         // const fileStorage = supabaseClient.storage.from(config.SUPABASE_BUCKET);
         const uploadedUrls = [];
         for (const file of files) {
             const fileName = `${Date.now()}-${file.originalname}`;
+            const fileStorage = supabaseClient.storage.from(bucketName);
             const { data, error } = await fileStorage.upload(fileName, file.buffer, {
                 contentType: file.mimetype,
                 upsert: true,
@@ -70,16 +67,18 @@ const uploadImages = async (files) => {
 const deleteImage = async(imageUrl) => {
     try {
         if(!imageUrl) return;
-        const bucketName = config.SUPABASE_BUCKET;
 
-        const filePath = imageUrl.split(`/object/public/${bucketName}/`)[1];
+        const match = imageUrl.match(/object\/public\/([^/]+)\/(.+)$/);
 
-        if(!filePath) {
-            console.warn("Invalid Supabase URL: ", imageUrl);
+        if(!match) {
+            console.warn("Invalid supaBase URL: ", imageUrl);
             return;
         }
 
-        const { data, error} = await supabaseClient
+        const bucketName = match[1];
+        const filePath = match[2];
+
+        const { error} = await supabaseClient
         .storage
         .from(bucketName)
         .remove([filePath]);
@@ -108,7 +107,6 @@ const testSupabaseConnection = async() => {
 module.exports = {
   uploadImage,
   uploadImages,
-  uploadMultiple: upload.array("images", 10),
   testSupabaseConnection,
   deleteImage
 };

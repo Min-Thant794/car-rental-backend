@@ -6,7 +6,9 @@ const config = {
     SECRET_KEY : process.env.SECRET_KEY,
     SUPABASE_URL : process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE : process.env.SUPABASE_SERVICE_ROLE,
-    SUPABASE_BUCKET : process.env.SUPABASE_BUCKET
+    SUPABASE_USER_BUCKET : process.env.SUPABASE_USER_BUCKET,
+    SUPABASE_LICENSE_BUCKET : process.env.SUPABASE_LICENSE_BUCKET,
+    SUPABASE_CAR_BUCKET : process.env.SUPABASE_CAR_BUCKET
 }
 
 module.exports = config
