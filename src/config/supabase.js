@@ -7,12 +7,14 @@ const supabaseClient = createClient(
     config.SUPABASE_SERVICE_ROLE
 );
 
-const upload = multer({ storage: multer.memoryStorage()})
+const fileStorage = supabaseClient.storage.from(config.SUPABASE_BUCKET);
+
+const upload = multer({ storage: multer.memoryStorage()});
 
 const uploadImage = async (file) => {
     try {
         const fileName = `${Date.now()}-${file.originalname}`;
-        const fileStorage = supabaseClient.storage.from(config.SUPABASE_BUCKET);
+
         
         const { data, error } = await fileStorage.upload(
             fileName,
@@ -22,6 +24,7 @@ const uploadImage = async (file) => {
                 upsert: true
             }
         );
+
 
         if (error) {
             console.log("Failed to upload image to SupaBase!", error);
@@ -41,7 +44,7 @@ const uploadImage = async (file) => {
 
 const uploadImages = async (files) => {
     try {
-        const fileStorage = supabaseClient.storage.from(config.SUPABASE_BUCKET);
+        // const fileStorage = supabaseClient.storage.from(config.SUPABASE_BUCKET);
         const uploadedUrls = [];
         for (const file of files) {
             const fileName = `${Date.now()}-${file.originalname}`;
@@ -64,13 +67,42 @@ const uploadImages = async (files) => {
     }
 }
 
-async function testSupabaseConnection() {
-  const { data, error } = await supabaseClient.storage.listBuckets();
-  if (error) {
-    console.log("Supabase connection failed:", error.message);
-  } else {
-    console.log("Supabase connection OK. Buckets:", data.map(b => b.name));
-  }
+const deleteImage = async(imageUrl) => {
+    try {
+        if(!imageUrl) return;
+        const bucketName = config.SUPABASE_BUCKET;
+
+        const filePath = imageUrl.split(`/object/public/${bucketName}/`)[1];
+
+        if(!filePath) {
+            console.warn("Invalid Supabase URL: ", imageUrl);
+            return;
+        }
+
+        const { data, error} = await supabaseClient
+        .storage
+        .from(bucketName)
+        .remove([filePath]);
+
+        if(error) {
+            console.error("Supabase delete failed: ", error);
+            throw error;
+        }
+        console.log("deleted image from supabase", filePath);
+        return true;
+
+    } catch (error) {
+        console.log("supaBase deleteImage() error!", error);
+    }
+}
+
+const testSupabaseConnection = async() => {
+    const { data, error } = await supabaseClient.storage.listBuckets();
+    if(error) {
+        console.log("Supabase connection failed: ", error.message);
+    } else {
+        console.log("Supabase connection OK. Buckets: ", data.map(b => b.name));
+    }
 }
 
 module.exports = {
@@ -78,4 +110,5 @@ module.exports = {
   uploadImages,
   uploadMultiple: upload.array("images", 10),
   testSupabaseConnection,
+  deleteImage
 };
