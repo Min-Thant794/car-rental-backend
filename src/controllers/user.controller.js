@@ -151,6 +151,13 @@ const loginUser = async (req, res) => {
             }
         );
 
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: false,      //true when using HTTPS
+            sameSite: "lax",    // cross-domain frontend
+            maxAge: 24 * 60 * 60 * 1000 // 1 day
+        })
+
         return res.status(200).json({
             data: {foundUser, token},
             message: "Login Success!",

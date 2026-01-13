@@ -7,6 +7,7 @@ const port = config.PORT
 const mongodb_url = config.MONGODB_URL
 const cors = require('cors');
 const { testSupabaseConnection } = require("./src/config/supabase");
+const cookieParser = require('cookie-parser');
 
 const userRoute = require("./src/routes/user.route");
 const carRoute = require("./src/routes/car.route");
@@ -17,7 +18,7 @@ app.use(cors({
     origin: [
         "http://localhost:8100"
     ],
-    credential: true
+    credentials: true
 }));
 
 app.use(express.json());
@@ -31,6 +32,7 @@ app.get('/', (req, res) => {
     res.send("API start working!");
 });
 
+app.use(cookieParser());
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/cars", carRoute);
 

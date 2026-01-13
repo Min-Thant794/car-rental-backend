@@ -29,7 +29,7 @@ const uploadImage = async (file, bucketName) => {
 
         const { data: publicUrl } = fileStorage.getPublicUrl(fileName);
 
-        console.log("Public Url: ", publicUrl.publicUrl);
+        //console.log("Public Url: ", publicUrl.publicUrl);
         
         return publicUrl.publicUrl;
 
@@ -87,7 +87,7 @@ const deleteImage = async(imageUrl) => {
             console.error("Supabase delete failed: ", error);
             throw error;
         }
-        console.log("deleted image from supabase", filePath);
+        //console.log("deleted image from supabase", filePath);
         return true;
 
     } catch (error) {

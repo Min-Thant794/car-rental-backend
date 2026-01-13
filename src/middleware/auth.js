@@ -3,16 +3,17 @@ const config = require("../config/config");
 
 const auth = (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
+        const token = req.cookies?.token;
 
-        if(!authHeader) {
-            return res.status(401).json({ message: "Missing token."});
+        //console.log("Token from cookie: ", token);
+
+        if(!token) {
+            return res.status(400).json({ message: "Authentication required!"});
         }
 
-        const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, config.JWT_SECRET_KEY);
-
         req.user = decoded;
+        
         next();
 
     } catch (error) {
