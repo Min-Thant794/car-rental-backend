@@ -3,6 +3,7 @@ const customerModel = require('../models/customer.model');
 const { encryption, comparison } = require("../helper/encryptDecrypt");
 const { uploadImage, deleteImage } = require("../config/supabase");
 const config = require("../config/config");
+const jwt = require('jsonwebtoken');
 
 const getAllUsers = async (req, res) => {
   try {
@@ -133,13 +134,28 @@ const loginUser = async (req, res) => {
         const isPasswordCorrect = await comparison(password, foundUser.password);
         if(!isPasswordCorrect) {
             return res.status(403).json({ message: "User not authenticated!", success: false});
-        } else {
-            return res.status(200).json({
-                data: foundUser,
-                message: "Login Success!",
-                success: true
-            });
         }
+
+        //console.log("JWT_SECRET_KEY:", config.JWT_SECRET_KEY);
+        //console.log("JWT_EXPIRE_IN:", config.JWT_EXPIRE_IN);
+        //console.log("JWT LIB:", jwt);
+
+        const token = jwt.sign(
+            {
+                userId: foundUser._id,
+                role: foundUser.role,
+            },
+            config.JWT_SECRET_KEY,
+            {
+                expiresIn: config.JWT_EXPIRE_IN || "1d"
+            }
+        );
+
+        return res.status(200).json({
+            data: {foundUser, token},
+            message: "Login Success!",
+            success: true
+        });
     } catch (error) {
         console.log('Error occurred at loginUser()')
         res.status(500).json({message: "Internal Server Error!", error});

@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { getAllCarModel, createCarModel, updateCarModel, deleteCarModel } = require("../controllers/car.controller");
 const upload = require("../config/multer");
+const auth = require("../middleware/auth");
+const adminOnly = require("../middleware/adminOnly");
 
-router.get("/",getAllCarModel);
-router.post("/create-car", upload.single("carImageUrl"), createCarModel);
-router.put("/:id", upload.single("carImageUrl"), updateCarModel);
-router.delete("/:id", deleteCarModel);
+router.get("/", auth, adminOnly, getAllCarModel);
+router.post("/create-car", auth, adminOnly, upload.single("carImageUrl"), createCarModel);
+router.put("/:id", auth, adminOnly, upload.single("carImageUrl"), updateCarModel);
+router.delete("/:id", auth, adminOnly, deleteCarModel);
 
 // router.post(
 //   "/debug",
