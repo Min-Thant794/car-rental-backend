@@ -24,9 +24,9 @@ const getAllCarModel = async (req, res) => {
 
 const createCarModel = async (req, res) => {
     try {
-        console.log("HEADERS: ", req.headers["content-type"]);
-        console.log("BODY: ", req.body);
-        console.log("FILE: ", req.file);
+        //console.log("HEADERS: ", req.headers["content-type"]);
+        //console.log("BODY: ", req.body);
+        //console.log("FILE: ", req.file);
         const {carName, description, fuelType, vehicleType, pricePerHour, brand, availabilityStatus} = req.body;
         const carImageFile = req.file;
 
