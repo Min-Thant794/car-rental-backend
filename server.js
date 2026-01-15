@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const mongoose = require("mongoose");
 require('dotenv').config();
+require("./src/jobs/expireBookings.job");
 const config = require("./src/config/config")
 const port = config.PORT
 const mongodb_url = config.MONGODB_URL
@@ -11,6 +12,7 @@ const cookieParser = require('cookie-parser');
 
 const userRoute = require("./src/routes/user.route");
 const carRoute = require("./src/routes/car.route");
+const bookingRoute = require("./src/routes/booking.route");
 
 testSupabaseConnection();
 
@@ -35,6 +37,7 @@ app.get('/', (req, res) => {
 app.use(cookieParser());
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/cars", carRoute);
+app.use("/api/v1/bookings", bookingRoute);
 
 mongoose.connect(mongodb_url).then(() => {
     console.log("MongoDB is successfully connected!");
