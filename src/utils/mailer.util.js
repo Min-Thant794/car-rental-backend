@@ -1,5 +1,6 @@
 const nodeMailer = require("nodemailer");
 const config = require("../config/config");
+const { bookingConfirmedTemplate } = require("../template/bookingConfirmed.template");
 
 const transporter = nodeMailer.createTransport({
     service: "gmail",
@@ -9,23 +10,20 @@ const transporter = nodeMailer.createTransport({
     }
 });
 
-const sendBookingConfirmedEmail = async (to, booking, car) => {
+const sendBookingConfirmedEmail = async (to, booking, car, invoicePath) => {
     const mailOptions = {
         from: `"Let's Drive" <${config.EMAIL_USER}>`,
         to,
-        subject: "Your Booking is Confirmed!",
-        html: `
-            <h2>Booking Confirmed!</h2>
-            <p>Your Booking has been approved.</p>
-            
-            <p><strong>Car:</strong> ${car.carName}</p>
-            <p><strong>From:</strong> ${new Date(booking.startDate).toDateString()}</p>
-            <p><strong>To:</strong> ${new Date(booking.endDate).toDateString()}</p>
-            <p><strong>Total Price:</strong> $${booking.totalPrice}</p>
-
-            <br/>
-            <p>Thank you for using Let's Drive.</p>
-        `
+        subject: "Booking Confirmed - Invoice Attached",
+        html: `<h2>Your booking is confirmed</h2>
+               <p>Car: ${car.carName}</p>
+               <p>From: ${booking.startDate}</p>
+               <p>To: ${booking.endDate}</p>`,
+        attachments: invoicePath ? [
+            {
+                filename: "invoice.pdf",
+                path: invoicePath
+            }] : []
     };
 
     await transporter.sendMail(mailOptions);

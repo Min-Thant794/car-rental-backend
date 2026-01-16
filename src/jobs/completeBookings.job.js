@@ -3,7 +3,9 @@ const bookingModel = require("../models/booking.model");
 const customerModel = require("../models/customer.model");
 const userModel = require("../models/user.model");
 const carModel = require("../models/car.model");
-const { sendBookingCompletedEmail } = require("../utils/mailer.util");
+const { sendBookingCompletedEmail, sendBookingConfirmedEmail } = require("../utils/mailer.util");
+const { generateInvoicePDF } = require("../utils/invoice.util");
+const fs = require("fs");
 
 cron.schedule("0 * * * *", async () => {
     try {

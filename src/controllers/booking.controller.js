@@ -3,6 +3,8 @@ const carModel = require("../models/car.model");
 const customerModel = require("../models/customer.model");
 const userModel = require("../models/user.model");
 const { sendBookingConfirmedEmail } = require("../utils/mailer.util");
+const fs = require("fs");
+const { generateInvoicePDF } =  require("../utils/invoice.util");
 
 const getAllBooking = async (req, res) => {
     try {
@@ -266,7 +268,11 @@ const updateBookingAdmin = async(req, res) => {
             const user = await userModel.findById(customer.userId);
             const car = await carModel.findById(updatedBooking.carId);
 
-            await sendBookingConfirmedEmail(user.email, updatedBooking, car);
+            const invoicePath = await generateInvoicePDF(updatedBooking, user, car);
+
+            await sendBookingConfirmedEmail(user.email, updatedBooking, car, invoicePath);
+
+            fs.unlinkSync(invoicePath);
         }
 
         if(!updatedBooking) {
