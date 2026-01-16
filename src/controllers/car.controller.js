@@ -27,7 +27,7 @@ const createCarModel = async (req, res) => {
         //console.log("HEADERS: ", req.headers["content-type"]);
         //console.log("BODY: ", req.body);
         //console.log("FILE: ", req.file);
-        const {carName, description, fuelType, vehicleType, pricePerHour, brand, availabilityStatus} = req.body;
+        const {carName, description, fuelType, vehicleType, pricePerDay, brand, availabilityStatus} = req.body;
         const carImageFile = req.file;
 
         let carImageUrl = null;
@@ -42,7 +42,7 @@ const createCarModel = async (req, res) => {
             fuelType,
             vehicleType,
             carImageUrl,
-            pricePerHour,
+            pricePerDay,
             brand,
             availabilityStatus
         });

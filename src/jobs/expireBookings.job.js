@@ -10,7 +10,9 @@ cron.schedule("*/5 * * * *", async () => {
                 bookingStatus: "Pending",
                 createdAt: { $lt: expiryTime }
             },
-            { bookingStatus: "Cancelled" }
+            { 
+                bookingStatus: "Expired"
+            }
         );
 
         if(result.modifiedCount > 0) {

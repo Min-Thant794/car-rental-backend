@@ -3,7 +3,8 @@ const app = express();
 const mongoose = require("mongoose");
 require('dotenv').config();
 require("./src/jobs/expireBookings.job");
-const config = require("./src/config/config")
+require("./src/jobs/completeBookings.job");
+const config = require("./src/config/config");
 const port = config.PORT
 const mongodb_url = config.MONGODB_URL
 const cors = require('cors');

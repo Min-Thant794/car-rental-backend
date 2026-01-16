@@ -24,7 +24,7 @@ const carModelSchema = new mongoose.Schema({
         type: String,
         required: false
     },
-    pricePerHour: {
+    pricePerDay: {
         type: Number,
         required: true
     },
