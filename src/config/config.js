@@ -12,7 +12,8 @@ const config = {
     SUPABASE_LICENSE_BUCKET : process.env.SUPABASE_LICENSE_BUCKET,
     SUPABASE_CAR_BUCKET : process.env.SUPABASE_CAR_BUCKET,
     EMAIL_USER: process.env.EMAIL_USER,
-    EMAIL_APP_PASS: process.env.EMAIL_APP_PASS
+    EMAIL_APP_PASS: process.env.EMAIL_APP_PASS,
+    REDIS_URL: process.env.REDIS_URL
 }
 
 module.exports = config
