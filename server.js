@@ -11,7 +11,7 @@ const mongodb_url = config.MONGODB_URL
 const cors = require('cors');
 const { testSupabaseConnection } = require("./src/config/supabase");
 const cookieParser = require('cookie-parser');
-const { initializeSocket } = require("./src/socket");
+const { initializeSocket } = require("./src/utils/socket");
 const { connectRedis } = require("./src/config/redis");
 
 const userRoute = require("./src/routes/user.route");
@@ -27,6 +27,7 @@ const corsOptions = {
     credentials: true
 }
 
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

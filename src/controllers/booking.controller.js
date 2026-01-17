@@ -5,6 +5,8 @@ const userModel = require("../models/user.model");
 const { sendBookingConfirmedEmail } = require("../utils/mailer.util");
 const fs = require("fs");
 const { generateInvoicePDF } =  require("../utils/invoice.util");
+const { acquireLock, releaseLock } = require("../utils/redisLock.util");
+const { getIo } = require("../utils/socket");
 
 const getAllBooking = async (req, res) => {
     try {
@@ -58,6 +60,9 @@ const getMyBooking = async(req, res) => {
 }
 
 const createBooking = async(req, res) => {
+
+    let bookingLock;
+
     try {
         if(req.user.role !== "Customer") {
             return res.status(403).json({ message: "Only customers can book cars", success: false });
@@ -111,6 +116,14 @@ const createBooking = async(req, res) => {
                 success: false
             })
         }
+
+        //booking lock
+
+        const lockKey = `lock:booking:${carId}:${newStart.toISOString()}:${newEnd.toISOString()}`;
+        bookingLock = await acquireLock(lockKey);
+        if(!bookingLock) {
+            return res.status(409).json({ message: "Booking is currently being processed. Please try again.", success: false });
+        }
         
         const isConflict = await bookingModel.findOne({
             carId,
@@ -135,15 +148,31 @@ const createBooking = async(req, res) => {
             bookingStatus: "Pending"
         });
 
+        //socket io
+        const io = getIo();
+        if(io) {
+            io.emit("booking:created", {
+                bookingId: booking._id,
+                carId: booking.carId,
+                startDate: booking.startDate,
+                endDate: booking.endDate,
+                bookingStatus: booking.bookingStatus,
+                totalPrice: booking.totalPrice
+            });
+        }
+
         return res.status(201).json({ message: "Booking created successfully!", data: booking, success: true });
 
     } catch (error) {
         console.log("An Error Occurred at createBooking()", error);
         return res.status(500).json({ message: "Internal Server Error!", success: false });
+    } finally {
+        await releaseLock(bookingLock);
     }
 }
 
 const updateMyBooking = async(req, res) => {
+    let bookingLock;
     try {
         const { id } = req.params;
         const { startDate, endDate } = req.body;
@@ -196,6 +225,13 @@ const updateMyBooking = async(req, res) => {
             });
         }
 
+        //lock booking
+        const lockKey = `lock:booking${booking.carId}:${newStartDate.toISOString()}:${newEndDate.toISOString()}`;
+        bookingLock = await acquireLock(lockKey);
+        if(!bookingLock) {
+            return res.status(409).json({ message: "Booking update is currently being processed. Please try again.", success: false });
+        }
+
         const isConflict = await bookingModel.findOne({
             _id: { $ne: booking._id},
             carId: booking.carId,
@@ -227,11 +263,25 @@ const updateMyBooking = async(req, res) => {
 
         await booking.save();
 
+        const io = getIo();
+        if(io) {
+            io.emit("booking:updated", {
+                bookingId: booking._id,
+                carId: booking.carId,
+                startDate: booking.startDate,
+                endDate: booking.endDate,
+                bookingStatus: booking.bookingStatus,
+                totalPrice: booking.totalPrice
+            });
+        }
+
         return res.status(200).json({ message: "Booking updated successfully!", success: true });
 
     } catch (error) {
         console.log("Error at updateMyBooking()", error);
         return res.status(500).json({ message: "Internal Server Error!", success: false });
+    } finally {
+        await releaseLock(bookingLock);
     }
 }
 
@@ -279,6 +329,15 @@ const updateBookingAdmin = async(req, res) => {
             return res.status(404).json({message: "Booking not found!", success: false });
         }
 
+        const io = getIo();
+        if(io) {
+            io.emit("booking:status-updated", {
+                bookingId: updatedBooking._id,
+                carId: updatedBooking.carId,
+                bookingStatus: updatedBooking.bookingStatus
+            });
+        }
+
         return res.status(200).json({message: "Booking updated successfully by admin!", data: updatedBooking, success: true });
     } catch (error) {
         console.log("Error Occurred at updateBookingAdmin()", error);
@@ -310,6 +369,15 @@ const deleteMyBooking = async(req, res) => {
         booking.bookingStatus = "Cancelled";
         await booking.save();
 
+        const io = getIo();
+        if(io) {
+            io.emit("booking-status-updated", {
+                bookingId: booking._id,
+                carId: booking.carId,
+                bookingStatus: booking.bookingStatus
+            });
+        }
+
         return res.status(200).json({ message: "Booking cancelled successfully!", success: true });
     } catch (error) {
         console.log("An Error Occurred at deleteMyBooking()", error);
@@ -323,6 +391,14 @@ const deleteBooking = async(req, res) => {
         const deleted = await bookingModel.findByIdAndDelete(id);
         
         if(!deleted) return res.status(400).json({ message: "Booking not found!", success: false });
+
+        const io = getIo();
+        if(io) {
+            io.emit("booking:deleted", {
+                bookingId: deleted._id,
+                carId: deleted.carId
+            });
+        }
 
         return res.status(200).json({ message: "Booking deleted by Admin", success: true });
     } catch (error) {

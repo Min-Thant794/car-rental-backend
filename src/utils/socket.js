@@ -9,6 +9,10 @@ const initializeSocket = (httpServer, corsOptions) => {
     return io;
 }
 
-const getIo = () => io;
+const getIo = () => {
+    if(!io) {
+        throw new Error("Socket.IO not initialized!");
+    }
+};
 
 module.exports = { initializeSocket, getIo };
