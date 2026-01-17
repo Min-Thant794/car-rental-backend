@@ -13,6 +13,7 @@ const getIo = () => {
     if(!io) {
         throw new Error("Socket.IO not initialized!");
     }
+    return io;
 };
 
 module.exports = { initializeSocket, getIo };
