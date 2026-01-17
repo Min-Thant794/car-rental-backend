@@ -13,7 +13,10 @@ const config = {
     SUPABASE_CAR_BUCKET : process.env.SUPABASE_CAR_BUCKET,
     EMAIL_USER: process.env.EMAIL_USER,
     EMAIL_APP_PASS: process.env.EMAIL_APP_PASS,
-    REDIS_URL: process.env.REDIS_URL
+    REDIS_USERNAME: process.env.REDIS_USERNAME,
+    REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+    REDIS_HOST: process.env.REDIS_HOST,
+    REDIS_PORT: process.env.REDIS_PORT,
 }
 
 module.exports = config
