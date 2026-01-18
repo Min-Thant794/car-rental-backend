@@ -179,9 +179,17 @@ const updateUser = async (req, res) => {
             return res.status(404).json({ message: "User not found!", success: false });
         }
 
+        if(req.user.role !== "Admin" && req.user.id !== id) {
+            return res.status(403).json({ message: "You are not allowed to update this user.", success: false });
+        }
+
         const customer = await customerModel.findOne({ userId: user._id });
 
         let finalData = {...req.body};
+
+        if(req.user.role !== "Admin") {
+            delete finalData.role;
+        }
         
         if(req.body.password && req.body.password.trim() !== "") {
             finalData.password = encryption(req.body.password);
@@ -225,7 +233,7 @@ const updateUser = async (req, res) => {
                 customerUpdate.dateOfBirth = req.body.dateOfBirth;
             }
 
-            if(req.body.verificationStatus) {
+            if(req.user.role === "Admin" && req.body.verificationStatus) {
                 customerUpdate.verificationStatus = req.body.verificationStatus;
             }
 

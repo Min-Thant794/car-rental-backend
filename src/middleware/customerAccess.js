@@ -1,6 +1,6 @@
 const isCustomer = (req, res, next) => {
-    if(req.user?.role != "Customer") {
-        return res.status(403).json({ message: "Access denied!"});
+    if(req.user?.role !== "Customer") {
+        return res.status(403).json({ message: "Only customers can access this resource!", success: false });
     }
 
     next();

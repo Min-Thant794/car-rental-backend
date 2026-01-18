@@ -2,13 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { getAllUsers,registerUser, loginUser, updateUser, deleteUser } = require("../controllers/user.controller");
 const upload= require("../config/multer");
+const auth = require("../middleware/auth");
+const adminOnly = require("../middleware/adminOnly");
+//const customerAccess = require("../middleware/customerAccess");
 
 router.post("/", upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
-router.post("/login", loginUser)
-router.get("/users", getAllUsers)
-router.put("/:id", upload.fields([{ name: "profileImageUrl", maxCount: 1}, {name: "licenseImageUrl", maxCount: 1}]), updateUser);
-router.delete("/:id", deleteUser)
-router.post("/logout", (req, res) => {
+router.post("/auth/login", loginUser)
+router.get("/", auth, adminOnly, getAllUsers)
+router.put("/:id", auth, upload.fields([{ name: "profileImageUrl", maxCount: 1}, {name: "licenseImageUrl", maxCount: 1}]), updateUser);
+router.delete("/:id", auth, adminOnly, deleteUser)
+router.post("/auth/logout", auth,(req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
         sameSite: "lax",
