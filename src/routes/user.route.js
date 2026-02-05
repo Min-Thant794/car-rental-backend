@@ -4,7 +4,10 @@ const { getAllUsers,registerUser, loginUser, updateUser, deleteUser } = require(
 const upload= require("../config/multer");
 const auth = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
+const userModel = require('../models/user.model');
 //const customerAccess = require("../middleware/customerAccess");
+
+//check session or cookie
 
 router.post("/", upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
 router.post("/auth/login", loginUser)

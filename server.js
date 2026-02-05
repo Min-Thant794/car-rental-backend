@@ -20,12 +20,23 @@ const bookingRoute = require("./src/routes/booking.route");
 
 testSupabaseConnection();
 
+const allowedOrigins = [
+    "http://localhost:8100",
+    "http://localhost:4100"
+];
+
 const corsOptions = {
-    origin: [
-        "http://localhost:8100"
-    ],
+    origin: (origin, callback) => {
+        if(!origin) return callback(null, true);
+
+        if(allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("CORS not allowed!"));
+        }
+    },
     credentials: true
-}
+};
 
 app.use(cors(corsOptions));
 app.use(express.json());
