@@ -169,6 +169,138 @@ const loginUser = async (req, res) => {
     }
 }
 
+const getCurrentUser = async (req, res) => {
+    try {
+        const token = req.cookies?.token;
+
+        if(!token) {
+            return res.status(401).json({
+                message: "Authentication Requried!",
+                success: false,
+                data: null
+            });
+        }
+
+        const decoded = jwt.verify(token, config.JWT_SECRET_KEY);
+        const user = await userModel.findById(decoded.userId).select("-password");
+
+        if(!user) {
+            return res.status(401).json({
+                message: "User not authenticated!",
+                success: false,
+                data: null
+            });
+        }
+
+        const customerProfile = await customerModel.findOne({ userId: user._id });
+
+        return res.status(200).json({
+            message: "User Authenticated!",
+            success: true,
+            data: {
+                user,
+                customerProfile
+            }
+        });
+    } catch (error) {
+        return res.status(401).json({
+            message: "Invalid or expired token",
+            success: false,
+            data: null
+        });
+    }
+};
+
+const loginAdmin = async (req, res) => {
+    try {
+        const { userName, password } = req.body;
+
+        if(!userName || !password) {
+            return res.status(400).json({ message: "username and password are required!", success: false });
+        }
+
+        const foundUser = await userModel.findOne({ userName });
+        if(!foundUser) {
+            return res.status(403).json({ message: "User does not exist!" });
+        }
+
+        if(foundUser.role !== "Admin") {
+            return res.status(403).json({ message: "Admin Access Only", success: false });
+        }
+
+        const isPasswordCorrect = await comparison(password, foundUser.password);
+        if(!isPasswordCorrect) {
+            return res.status(403).json({ message: "User not authenticated!", success: false });
+        }
+
+        const token = jwt.sign(
+            {
+                userId: foundUser._id,
+                role: foundUser.role
+            },
+            config.JWT_SECRET_KEY,
+            {
+                expiresIn: config.JWT_EXPIRE_IN || "1d"
+            }
+        );
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 24 * 60 * 60 * 1000
+        });
+
+        return res.status(200).json({
+            data: { foundUser, token },
+            message: "Login Success!",
+            success: true
+        });
+    } catch (error) {
+        console.log("An Error Occurred at loginAdmin()");
+        res.status(500).json({ message: "Internal Server Error!", error });
+    }
+}
+
+const getCurrentAdmin = async (req, res) => {
+    try {
+        const token = req.cookies?.token;
+
+        if(!token) {
+            return res.status(401).json({
+                message: "Authentication Required!",
+                success: false,
+                data: null
+            });
+        }
+
+        const decoded = jwt.verify(token, config.JWT_SECRET_KEY);
+        const user = await userModel.findById(decoded.userId).select("-password");
+
+        if(!user || user.role !== "Admin") {
+            return res.status(403).json({
+                message: "Admin Access Only",
+                success: false,
+                data: null
+            });
+        }
+
+        return res.status(200).json({
+            message: "Admin Authenticated",
+            success: true,
+            data: {
+                user
+            }
+        });
+    } catch (error) {
+        return res.status(401).json({
+            message: "Invalid or expired token",
+            success: false,
+            data: null
+        })
+    }
+}
+
 const updateUser = async (req, res) => {
     //console.log("FILES: updateUser(): ", req.files);
     try {
@@ -293,6 +425,9 @@ module.exports = {
     getAllUsers,
     registerUser,
     loginUser,
+    getCurrentUser,
+    loginAdmin,
+    getCurrentAdmin,
     updateUser,
     deleteUser
 }
