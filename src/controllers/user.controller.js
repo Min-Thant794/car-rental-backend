@@ -128,7 +128,7 @@ const loginUser = async (req, res) => {
 
         const foundUser = await userModel.findOne({ userName });
         if(!foundUser) {
-            return res.status(400).json({ message: "User does not exist!"});
+            return res.status(400).json({ message: "Wrong Credentials"});
         }
 
         const isPasswordCorrect = await comparison(password, foundUser.password);
@@ -221,7 +221,7 @@ const loginAdmin = async (req, res) => {
 
         const foundUser = await userModel.findOne({ userName });
         if(!foundUser) {
-            return res.status(403).json({ message: "User does not exist!" });
+            return res.status(403).json({ message: "Wrong Credentials" });
         }
 
         if(foundUser.role !== "Admin") {
