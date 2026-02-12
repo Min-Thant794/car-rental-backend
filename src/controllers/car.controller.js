@@ -42,7 +42,7 @@ const createCarModel = async (req, res) => {
             fuelType,
             vehicleType,
             carImageUrl,
-            pricePerDay,
+            pricePerDay: Number(pricePerDay),
             brand,
             availabilityStatus
         });
@@ -50,7 +50,7 @@ const createCarModel = async (req, res) => {
         if(createCarModel) {
             return res.status(200).json({ 
                 data: createCarModel,
-                message: `Car name ${createCarModel.carName} has successfully created!`,
+                message: `A new car ${createCarModel.carName} has successfully created!`,
                 success: true
             });
         } else {

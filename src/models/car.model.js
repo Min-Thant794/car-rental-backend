@@ -20,13 +20,14 @@ const carModelSchema = new mongoose.Schema({
         enum: ["Diesel", "Electric", "Petrol"],
         required: true
     },
-    vechicleType: {
+    vehicleType: {
         type: String,
         required: false
     },
     pricePerDay: {
         type: Number,
-        required: true
+        required: true,
+        min: 1
     },
     brand: {
         type: String,

@@ -5,6 +5,52 @@ const { uploadImage, deleteImage } = require("../config/supabase");
 const config = require("../config/config");
 const jwt = require('jsonwebtoken');
 
+const setAuthCookie = (res, token) => {
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000
+    });
+};
+
+const buildAuthPayload = (user) => ({
+    userId: user._id,
+    role: user.role
+});
+
+const issueSessionToken = (user) => jwt.sign(
+    buildAuthPayload(user),
+    config.JWT_SECRET_KEY,
+    {
+        expiresIn: config.JWT_EXPIRE_IN || "1d"
+    }
+);
+
+const tryResolveExistingSession = async(req, expectedRole) => {
+    const existingToken = req.cookies?.token;
+    if(!existingToken) {
+        return null;
+    }
+
+    try {
+        const decoded = jwt.verify(existingToken, config.JWT_SECRET_KEY);
+        const sessionUser = await userModel.findById(decoded.userId);
+
+        if(!sessionUser) {
+            return null;
+        }
+
+        if(expectedRole && sessionUser.role !== expectedRole) {
+            return null;
+        }
+
+        return sessionUser;
+    } catch (error) {
+        return null;
+    }
+}
+
 const getAllUsers = async (req, res) => {
   try {
     const users = await userModel.aggregate([
@@ -120,6 +166,23 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
     try {
+        const activeSessionUser = await tryResolveExistingSession(req);
+
+        if(activeSessionUser) {
+            const rotatedToken = issueSessionToken(activeSessionUser);
+            setAuthCookie(res, rotatedToken);
+
+            return res.status(200).json({
+                data: {
+                    user: activeSessionUser,
+                    token: rotatedToken,
+                    alreadyAuthenticated: true
+                },
+                message: "Session already active. Token rotated.",
+                success: true
+            });
+        }
+
         const { userName, password } = req.body;
 
         if(!userName || !password) {
@@ -140,23 +203,26 @@ const loginUser = async (req, res) => {
         //console.log("JWT_EXPIRE_IN:", config.JWT_EXPIRE_IN);
         //console.log("JWT LIB:", jwt);
 
-        const token = jwt.sign(
-            {
-                userId: foundUser._id,
-                role: foundUser.role,
-            },
-            config.JWT_SECRET_KEY,
-            {
-                expiresIn: config.JWT_EXPIRE_IN || "1d"
-            }
-        );
+        // const token = jwt.sign(
+        //     {
+        //         userId: foundUser._id,
+        //         role: foundUser.role,
+        //     },
+        //     config.JWT_SECRET_KEY,
+        //     {
+        //         expiresIn: config.JWT_EXPIRE_IN || "1d"
+        //     }
+        // );
 
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: false,      //true when using HTTPS
-            sameSite: "lax",    // cross-domain frontend
-            maxAge: 24 * 60 * 60 * 1000 // 1 day
-        })
+        // res.cookie("token", token, {
+        //     httpOnly: true,
+        //     secure: false,      //true when using HTTPS
+        //     sameSite: "lax",    // cross-domain frontend
+        //     maxAge: 24 * 60 * 60 * 1000 // 1 day
+        // })
+
+        const token = issueSessionToken(foundUser);
+        setAuthCookie(res, token);
 
         return res.status(200).json({
             data: {foundUser, token},
@@ -213,6 +279,23 @@ const getCurrentUser = async (req, res) => {
 
 const loginAdmin = async (req, res) => {
     try {
+        const activeAdminSession = await tryResolveExistingSession(req, "Admin");
+
+        if(activeAdminSession) {
+            const rotatedToken = issueSessionToken(activeAdminSession);
+            setAuthCookie(res, rotatedToken);
+
+            return res.status(200).json({
+                data: {
+                    user: activeAdminSession,
+                    token: rotatedToken,
+                    alreadyAuthenticated: true
+                },
+                message: "Admin session already active! Token rotated.",
+                success: true
+            });
+        }
+
         const { userName, password } = req.body;
 
         if(!userName || !password) {
@@ -233,23 +316,26 @@ const loginAdmin = async (req, res) => {
             return res.status(403).json({ message: "User not authenticated!", success: false });
         }
 
-        const token = jwt.sign(
-            {
-                userId: foundUser._id,
-                role: foundUser.role
-            },
-            config.JWT_SECRET_KEY,
-            {
-                expiresIn: config.JWT_EXPIRE_IN || "1d"
-            }
-        );
+        // const token = jwt.sign(
+        //     {
+        //         userId: foundUser._id,
+        //         role: foundUser.role
+        //     },
+        //     config.JWT_SECRET_KEY,
+        //     {
+        //         expiresIn: config.JWT_EXPIRE_IN || "1d"
+        //     }
+        // );
 
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: 24 * 60 * 60 * 1000
-        });
+        // res.cookie("token", token, {
+        //     httpOnly: true,
+        //     secure: false,
+        //     sameSite: "lax",
+        //     maxAge: 24 * 60 * 60 * 1000
+        // });
+
+        const token = issueSessionToken(foundUser);
+        setAuthCookie(res, token);
 
         return res.status(200).json({
             data: { foundUser, token },
@@ -392,6 +478,10 @@ const deleteUser = async (req, res) => {
         const user = await userModel.findById(id);
         if(!user) {
             return res.status(404).json({ message: "User not found!", success: false });
+        }
+
+        if(user.userName === "Admin One") {
+            return res.status(400).json({ message: "This user cannot be deleted", success: false});
         }
         
         if(user.profileImageUrl) {
