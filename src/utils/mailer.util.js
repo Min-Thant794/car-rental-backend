@@ -1,6 +1,7 @@
 const nodeMailer = require("nodemailer");
 const config = require("../config/config");
 const { bookingConfirmedTemplate } = require("../template/bookingConfirmed.template");
+const { customerAccountCreation } = require('../template/customerCreation.template')
 
 const transporter = nodeMailer.createTransport({
     service: "gmail",
@@ -57,4 +58,21 @@ const sendBookingCompletedEmail = async (to, booking, car) => {
     console.log("Compeltion email sent to: ", to);
 }
 
-module.exports = { sendBookingConfirmedEmail, sendBookingCompletedEmail }
+const sendCustomerAccountCreatedEmail = async (to, userName, password, resetLink) => {
+    try {
+        const mailOptions = {
+            from: `"Let's Drive" <${config.EMAIL_USER}`,
+            to,
+            subject: "Welcome to Let's Drive - Your Account Details",
+            html: customerAccountCreation(userName, password, resetLink)
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log("Account creation email sent to: ", to);
+    } catch (error) {
+        console.error("Failed to send account creation email: ", error);
+        throw error;
+    }
+}
+
+module.exports = { sendBookingConfirmedEmail, sendBookingCompletedEmail, sendCustomerAccountCreatedEmail }

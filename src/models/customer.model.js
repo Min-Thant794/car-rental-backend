@@ -16,7 +16,7 @@ const customerSchema = new mongoose.Schema({
         trim: true,
         validate: (
             function(v) {
-                return /^\+?[0-9]{8,15}$/.test(v);
+                return /^\+?[0-9]{8,9}$/.test(v);
             }
         )
     },

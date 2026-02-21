@@ -22,7 +22,7 @@ testSupabaseConnection();
 
 const allowedOrigins = [
     "http://localhost:8100",
-    "http://localhost:4100"
+    "http://localhost:4040"
 ];
 
 const corsOptions = {

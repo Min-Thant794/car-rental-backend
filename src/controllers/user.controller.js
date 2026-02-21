@@ -2,6 +2,7 @@ const userModel = require('../models/user.model');
 const customerModel = require('../models/customer.model');
 const { encryption, comparison } = require("../helper/encryptDecrypt");
 const { uploadImage, deleteImage } = require("../config/supabase");
+const { sendCustomerAccountCreatedEmail } = require("../utils/mailer.util");
 const config = require("../config/config");
 const jwt = require('jsonwebtoken');
 
@@ -108,7 +109,9 @@ const registerUser = async (req, res) => {
         });
         }
 
-        const { phoneNumber, dateOfBirth, verificationStatus } = req.body;
+        const { phoneNumber, dateOfBirth, verificationStatus, createdByAdmin } = req.body;
+        
+        const rawPassword = req.body.password;
 
         const profileFile = req.files?.profileImageUrl?.[0];
         const licenseFile = req.files?.licenseImageUrl?.[0];
@@ -127,7 +130,7 @@ const registerUser = async (req, res) => {
         const user = await userModel.create({
             ...req.body,
             profileImageUrl,
-            password: encryption(req.body.password),
+            password: encryption(rawPassword),
         });
 
         if(user.role === "Customer") {
@@ -142,6 +145,23 @@ const registerUser = async (req, res) => {
                 licenseImageUrl,
                 verificationStatus
             });
+
+            if(createdByAdmin || (req.user && req.user.role === "Admin")) {
+                const resetToken = jwt.sign(
+                    {userId: user._id},
+                    config.JWT_SECRET_KEY,
+                    {expiresIn: '2h'}
+                );
+
+                const resetLink = `http://localhost:4040/reset-password?token=${resetToken}`;
+
+                await sendCustomerAccountCreatedEmail(
+                    user.email,
+                    user.userName,
+                    rawPassword,
+                    resetLink
+                );
+            }
         }
 
         res.status(200).json({
