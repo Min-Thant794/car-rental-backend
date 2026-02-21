@@ -109,7 +109,7 @@ const registerUser = async (req, res) => {
         });
         }
 
-        const { phoneNumber, dateOfBirth, verificationStatus, createdByAdmin } = req.body;
+        const { phoneNumber, dateOfBirth, verificationStatus } = req.body;
         
         const rawPassword = req.body.password;
 
@@ -127,17 +127,19 @@ const registerUser = async (req, res) => {
             licenseImageUrl = await uploadImage(licenseFile, config.SUPABASE_LICENSE_BUCKET);
         }
 
+        if (req.body.role === "Customer" && !licenseImageUrl) {
+            return res.status(400).json({ message: "License Image is required!", success: false });
+        }
+
         const user = await userModel.create({
             ...req.body,
             profileImageUrl,
             password: encryption(rawPassword),
         });
 
-        if(user.role === "Customer") {
-            if(!licenseImageUrl) {
-                return res.status(400).json({ message: "License Image is required!", success: false});
-            }
+        const isAdminAction = req.user && req.user.role === "Admin";
 
+        if(user.role === "Customer") {
             await customerModel.create({
                 userId: user._id,
                 phoneNumber,
@@ -146,14 +148,15 @@ const registerUser = async (req, res) => {
                 verificationStatus
             });
 
-            if(createdByAdmin || (req.user && req.user.role === "Admin")) {
+            if(isAdminAction) {
                 const resetToken = jwt.sign(
                     {userId: user._id},
                     config.JWT_SECRET_KEY,
                     {expiresIn: '2h'}
                 );
 
-                const resetLink = `http://localhost:4040/reset-password?token=${resetToken}`;
+                const clientAppUrl = config.CLIENT_APP_URL || 'http://localhost:4040';
+                const resetLink = `${clientAppUrl}/reset-password?token=${resetToken}`;
 
                 await sendCustomerAccountCreatedEmail(
                     user.email,

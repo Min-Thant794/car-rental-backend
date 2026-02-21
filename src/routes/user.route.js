@@ -8,6 +8,7 @@ const userModel = require('../models/user.model');
 //const customerAccess = require("../middleware/customerAccess");
 
 router.post("/", upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
+router.post("/user-create-by-admin", auth, adminOnly, upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
 router.post("/auth/login", loginUser);
 router.get("/auth/me", getCurrentUser);
 router.post("/auth/admin/login", loginAdmin);
