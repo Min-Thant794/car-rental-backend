@@ -187,6 +187,43 @@ const registerUser = async (req, res) => {
     }
 }
 
+const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        if(!token || !newPassword) {
+            return res.status(400).json({
+                message: "Token and new password are required!",
+                success: false
+            });
+        }
+
+        let decoded;
+        try {
+            decoded = jwt.verify(token, config.JWT_SECRET_KEY);
+        } catch (error) {
+            return res.status(401).json({
+                message: "Password reset link is invalid or has expired.",
+                success: false
+            });
+        }
+
+        const user = await userModel.findById(decoded.userId);
+        if(!user) {
+            return res.status(404).json({ message: "User not found!", success: false });
+        }
+
+        const hashedPassword = encryption(newPassword);
+
+        user.password = hashedPassword;
+        await user.save();
+
+        return res.status(200).json({ message: "Password has been successfully reset!", success: true });
+    } catch (error) {
+        console.log("An Error Occurred at resetPassword()", error);
+        return res.status(500).json({ message: "Internal Server Error", success: false });
+    }
+}
+
 const loginUser = async (req, res) => {
     try {
         const activeSessionUser = await tryResolveExistingSession(req);
@@ -537,6 +574,7 @@ const deleteUser = async (req, res) => {
 module.exports = {
     getAllUsers,
     registerUser,
+    resetPassword,
     loginUser,
     getCurrentUser,
     loginAdmin,

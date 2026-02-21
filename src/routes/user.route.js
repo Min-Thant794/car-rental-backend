@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUsers,registerUser, loginUser, getCurrentUser, loginAdmin, getCurrentAdmin,updateUser, deleteUser } = require("../controllers/user.controller");
+const { getAllUsers, registerUser, resetPassword, loginUser, getCurrentUser, loginAdmin, getCurrentAdmin,updateUser, deleteUser } = require("../controllers/user.controller");
 const upload= require("../config/multer");
 const auth = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
@@ -9,6 +9,7 @@ const userModel = require('../models/user.model');
 
 router.post("/", upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
 router.post("/user-create-by-admin", auth, adminOnly, upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
+router.post("/reset-password", resetPassword);
 router.post("/auth/login", loginUser);
 router.get("/auth/me", getCurrentUser);
 router.post("/auth/admin/login", loginAdmin);
