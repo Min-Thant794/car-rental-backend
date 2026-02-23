@@ -6,12 +6,12 @@ const { sendCustomerAccountCreatedEmail } = require("../utils/mailer.util");
 const config = require("../config/config");
 const jwt = require('jsonwebtoken');
 
-const setAuthCookie = (res, token) => {
+const setAuthCookie = (res, token, maxAgeMs) => {
     res.cookie("token", token, {
         httpOnly: true,
         secure: false,
         sameSite: "lax",
-        maxAge: 24 * 60 * 60 * 1000
+        maxAge: maxAgeMs
     });
 };
 
@@ -20,12 +20,10 @@ const buildAuthPayload = (user) => ({
     role: user.role
 });
 
-const issueSessionToken = (user) => jwt.sign(
+const issueSessionToken = (user, expiresIn) => jwt.sign(
     buildAuthPayload(user),
     config.JWT_SECRET_KEY,
-    {
-        expiresIn: config.JWT_EXPIRE_IN || "1d"
-    }
+    { expiresIn }
 );
 
 const tryResolveExistingSession = async(req, expectedRole) => {
@@ -228,22 +226,18 @@ const loginUser = async (req, res) => {
     try {
         const activeSessionUser = await tryResolveExistingSession(req);
 
-        if(activeSessionUser) {
-            const rotatedToken = issueSessionToken(activeSessionUser);
-            setAuthCookie(res, rotatedToken);
-
-            return res.status(200).json({
-                data: {
-                    user: activeSessionUser,
-                    token: rotatedToken,
-                    alreadyAuthenticated: true
-                },
-                message: "Session already active. Token rotated.",
-                success: true
-            });
+        if (activeSessionUser) {
+        return res.status(200).json({
+            data: {
+            user: activeSessionUser,
+            alreadyAuthenticated: true,
+            },
+            message: "Session already active.",
+            success: true,
+        });
         }
 
-        const { userName, password } = req.body;
+        const { userName, password, rememberMe } = req.body;
 
         if(!userName || !password) {
             return res.status(400).json({message: "username and password are required!", success: false});
@@ -251,7 +245,7 @@ const loginUser = async (req, res) => {
 
         const foundUser = await userModel.findOne({ userName });
         if(!foundUser) {
-            return res.status(400).json({ message: "Wrong Credentials"});
+            return res.status(400).json({ message: "Wrong Credentials", success: false });
         }
 
         const isPasswordCorrect = await comparison(password, foundUser.password);
@@ -259,39 +253,27 @@ const loginUser = async (req, res) => {
             return res.status(403).json({ message: "User not authenticated!", success: false});
         }
 
-        //console.log("JWT_SECRET_KEY:", config.JWT_SECRET_KEY);
-        //console.log("JWT_EXPIRE_IN:", config.JWT_EXPIRE_IN);
-        //console.log("JWT LIB:", jwt);
+        const jwtExpiresIn = rememberMe ? "1h" : "15m";
 
-        // const token = jwt.sign(
-        //     {
-        //         userId: foundUser._id,
-        //         role: foundUser.role,
-        //     },
-        //     config.JWT_SECRET_KEY,
-        //     {
-        //         expiresIn: config.JWT_EXPIRE_IN || "1d"
-        //     }
-        // );
-
-        // res.cookie("token", token, {
-        //     httpOnly: true,
-        //     secure: false,      //true when using HTTPS
-        //     sameSite: "lax",    // cross-domain frontend
-        //     maxAge: 24 * 60 * 60 * 1000 // 1 day
-        // })
-
-        const token = issueSessionToken(foundUser);
-        setAuthCookie(res, token);
+        const token = issueSessionToken(foundUser, jwtExpiresIn);
+        
+        if (rememberMe) {
+            setAuthCookie(res, token, 60 * 60 * 1000);
+            return res.status(200).json({
+                data: {user: userSafe},
+                message: "Login Success!",
+                success: true
+            });
+        }
 
         return res.status(200).json({
             data: {foundUser, token},
             message: "Login Success!",
-            success: true
+            success: true,
         });
     } catch (error) {
         console.log('Error occurred at loginUser()')
-        res.status(500).json({message: "Internal Server Error!", error});
+        res.status(500).json({message: "Internal Server Error!", success: false, error});
     }
 }
 

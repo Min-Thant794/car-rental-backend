@@ -3,7 +3,7 @@ const config = require("../config/config");
 
 const auth = (req, res, next) => {
     try {
-        const token = req.cookies?.token;
+        const token = req.cookies?.token || (req.headers?.authorization?.startsWith("Bearer ") ? req.headers.authorization.split(" ")[1] : null);
 
         console.log("Token from cookie: ", token);
 
