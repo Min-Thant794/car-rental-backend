@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, registerUser, resetPassword, loginUser, getCurrentUser, loginAdmin, getCurrentAdmin,updateUser, deleteUser } = require("../controllers/user.controller");
+const { getAllUsers, registerUser, resetPassword, loginUser, getCurrentUser, loginAdmin, getCurrentAdmin, updateUser, deleteUser } = require("../controllers/user.controller");
 const upload= require("../config/multer");
 const auth = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
@@ -13,7 +13,7 @@ router.post("/reset-password", resetPassword);
 router.post("/auth/login", loginUser);
 router.get("/auth/me", getCurrentUser);
 router.post("/auth/admin/login", loginAdmin);
-router.get("/auth/admin/me", getCurrentAdmin);
+router.get("/auth/admin/me", auth, adminOnly, getCurrentAdmin);
 router.get("/", auth, adminOnly, getAllUsers);
 router.put("/:id", auth, upload.fields([{ name: "profileImageUrl", maxCount: 1}, {name: "licenseImageUrl", maxCount: 1}]), updateUser);
 router.delete("/:id", auth, adminOnly, deleteUser);
