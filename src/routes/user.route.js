@@ -16,7 +16,7 @@ router.get("/auth/me", auth, getCurrentUser);
 router.post("/auth/admin/login", loginAdmin);
 router.get("/auth/admin/me", auth, adminOnly, getCurrentAdmin);
 router.get("/", auth, adminOnly, getAllUsers);
-router.put("/:id", auth, isCustomer, upload.fields([{ name: "profileImageUrl", maxCount: 1}, {name: "licenseImageUrl", maxCount: 1}]), updateUser);
+router.put("/:id", auth, upload.fields([{ name: "profileImageUrl", maxCount: 1}, {name: "licenseImageUrl", maxCount: 1}]), updateUser);
 router.delete("/:id", auth, adminOnly, deleteUser);
 router.post("/auth/logout", auth,(req, res) => {
     res.clearCookie("token", {
