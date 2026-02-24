@@ -223,59 +223,57 @@ const resetPassword = async (req, res) => {
 }
 
 const loginUser = async (req, res) => {
-    try {
-        const activeSessionUser = await tryResolveExistingSession(req);
+  try {
+    const activeSessionUser = await tryResolveExistingSession(req);
 
-        if (activeSessionUser) {
-        return res.status(200).json({
-            data: {
-            user: activeSessionUser,
-            alreadyAuthenticated: true,
-            },
-            message: "Session already active.",
-            success: true,
-        });
-        }
-
-        const { userName, password, rememberMe } = req.body;
-
-        if(!userName || !password) {
-            return res.status(400).json({message: "username and password are required!", success: false});
-        }
-
-        const foundUser = await userModel.findOne({ userName });
-        if(!foundUser) {
-            return res.status(400).json({ message: "Wrong Credentials", success: false });
-        }
-
-        const isPasswordCorrect = await comparison(password, foundUser.password);
-        if(!isPasswordCorrect) {
-            return res.status(403).json({ message: "User not authenticated!", success: false});
-        }
-
-        const jwtExpiresIn = rememberMe ? "1h" : "15m";
-
-        const token = issueSessionToken(foundUser, jwtExpiresIn);
-        
-        if (rememberMe) {
-            setAuthCookie(res, token, 60 * 60 * 1000);
-            return res.status(200).json({
-                data: {user: userSafe},
-                message: "Login Success!",
-                success: true
-            });
-        }
-
-        return res.status(200).json({
-            data: {foundUser, token},
-            message: "Login Success!",
-            success: true,
-        });
-    } catch (error) {
-        console.log('Error occurred at loginUser()')
-        res.status(500).json({message: "Internal Server Error!", success: false, error});
+    if (activeSessionUser) {
+      return res.status(200).json({
+        data: {
+          user: activeSessionUser,
+          alreadyAuthenticated: true,
+        },
+        message: "Session already active.",
+        success: true,
+      });
     }
-}
+
+    const { userName, password, rememberMe } = req.body;
+
+    if (!userName || !password) {
+      return res.status(400).json({ message: "username and password are required!", success: false });
+    }
+
+    const foundUser = await userModel.findOne({ userName });
+    if (!foundUser) {
+      return res.status(400).json({ message: "Wrong Credentials", success: false });
+    }
+
+    const isPasswordCorrect = await comparison(password, foundUser.password);
+    if (!isPasswordCorrect) {
+      return res.status(403).json({ message: "User not authenticated!", success: false });
+    }
+
+    // Make sure password is not sent back
+    const userSafe = foundUser.toObject();
+    delete userSafe.password;
+
+    const jwtExpiresIn = rememberMe ? "1h" : "15m";
+    const token = issueSessionToken(foundUser, jwtExpiresIn);
+
+    // Optional but recommended: set cookie for BOTH cases, just different expiry
+    const cookieMaxAge = rememberMe ? 60 * 60 * 1000 : 15 * 60 * 1000;
+    setAuthCookie(res, token, cookieMaxAge);
+
+    return res.status(200).json({
+      data: { user: userSafe, token },
+      message: "Login Success!",
+      success: true,
+    });
+  } catch (error) {
+    console.log("Error occurred at loginUser()", error);
+    return res.status(500).json({ message: "Internal Server Error!", success: false });
+  }
+};
 
 const getCurrentUser = async (req, res) => {
     try {

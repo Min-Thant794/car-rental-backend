@@ -5,17 +5,18 @@ const upload= require("../config/multer");
 const auth = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 const userModel = require('../models/user.model');
+const isCustomer = require('../middleware/customerAccess');
 //const customerAccess = require("../middleware/customerAccess");
 
 router.post("/", upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
 router.post("/user-create-by-admin", auth, adminOnly, upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
 router.post("/reset-password", resetPassword);
 router.post("/auth/login", loginUser);
-router.get("/auth/me", getCurrentUser);
+router.get("/auth/me", auth, getCurrentUser);
 router.post("/auth/admin/login", loginAdmin);
 router.get("/auth/admin/me", auth, adminOnly, getCurrentAdmin);
 router.get("/", auth, adminOnly, getAllUsers);
-router.put("/:id", auth, upload.fields([{ name: "profileImageUrl", maxCount: 1}, {name: "licenseImageUrl", maxCount: 1}]), updateUser);
+router.put("/:id", auth, isCustomer, upload.fields([{ name: "profileImageUrl", maxCount: 1}, {name: "licenseImageUrl", maxCount: 1}]), updateUser);
 router.delete("/:id", auth, adminOnly, deleteUser);
 router.post("/auth/logout", auth,(req, res) => {
     res.clearCookie("token", {
