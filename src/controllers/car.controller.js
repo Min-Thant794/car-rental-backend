@@ -4,18 +4,51 @@ const config = require("../config/config");
 
 const getAllCarModel = async (req, res) => {
     try {
-        const allCarModel = await carModel.find({});
+        const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+        const limit = Math.min(Math.max(parseInt(req.query.limit || "10", 10), 1), 15); //fetch 15 per request
+        const skip = (page - 1) * limit;
 
-        if(allCarModel.length === 0) {
-            return res.status(404).json({ message: "No car model found!", success: false, data:[] });
-        } else {
-            return res.status(200).json({
-                message: "Successfully fetched from Mongo", 
-                data: allCarModel, 
-                count: allCarModel.length, 
-                success: true
+        const filter = {};
+        const sort = { createdAt: -1};
+
+        const [cars, total] = await Promise.all([
+            carModel.find(filter).sort(sort).skip(skip).limit(limit),
+            carModel.countDocuments(filter),
+        ]);
+
+        if(cars.length === 0) {
+            return res.status(404).json({
+                message: "No car model found!",
+                success: false,
+                data: [],
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit) || 1,
+                    hasPrev: page > 1,
+                    hasNext: page < (Math.ceil(total / limit) || 1),
+                }
             });
         }
+
+        const totalPages = Math.ceil(total / limit)|| 1;
+
+        return res.status(200).json({
+            message: "Successfully fetched from MongoDB",
+            success: true,
+            data: cars,
+            count: cars.length,
+            total,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+                hasPrev: page > 1,
+                hasNext: page < totalPages,
+            }
+        });
     } catch (error) {
         console.log("An Error Occurred at getAllCarModel()", error);
         return res.status(500).json({ message: "Internal Server Error!", success: false });

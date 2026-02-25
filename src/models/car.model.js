@@ -25,6 +25,11 @@ const carModelSchema = new mongoose.Schema({
         enum: ["Crossover", "Sedan", "SUV", "MPV", "Hatchback", "Station Wagon"],
         required: true
     },
+    seater: {
+        type: Number,
+        enum: [4, 5, 6, 7],
+        required: true
+    },
     pricePerDay: {
         type: Number,
         required: true,
