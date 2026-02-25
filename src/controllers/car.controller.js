@@ -6,8 +6,8 @@ const getAllCarModel = async (req, res) => {
     try {
         const allCarModel = await carModel.find({});
 
-        if(!allCarModel) {
-            return res.status(404).json({ message: "No car model found!", success: false });
+        if(allCarModel.length === 0) {
+            return res.status(404).json({ message: "No car model found!", success: false, data:[] });
         } else {
             return res.status(200).json({
                 message: "Successfully fetched from Mongo", 
@@ -17,7 +17,7 @@ const getAllCarModel = async (req, res) => {
             });
         }
     } catch (error) {
-        console.log("An Error Occurred at gatAllCarModel()", error);
+        console.log("An Error Occurred at getAllCarModel()", error);
         return res.status(500).json({ message: "Internal Server Error!", success: false });
     }
 }
@@ -27,8 +27,11 @@ const createCarModel = async (req, res) => {
         //console.log("HEADERS: ", req.headers["content-type"]);
         //console.log("BODY: ", req.body);
         //console.log("FILE: ", req.file);
-        const {carName, description, fuelType, vehicleType, pricePerDay, brand, availabilityStatus} = req.body;
+        const {carName, description, fuelType, vehicleType, pricePerDay, discount, brand, availabilityStatus} = req.body;
         const carImageFile = req.file;
+
+        const safePrice = Number(pricePerDay);
+        const safeDiscount = Number.isFinite(Number(discount)) ? Number(discount) : 0;
 
         let carImageUrl = null;
 
@@ -42,7 +45,8 @@ const createCarModel = async (req, res) => {
             fuelType,
             vehicleType,
             carImageUrl,
-            pricePerDay: Number(pricePerDay),
+            pricePerDay: safePrice,
+            discount: safeDiscount,
             brand,
             availabilityStatus
         });

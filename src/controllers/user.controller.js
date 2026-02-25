@@ -6,7 +6,7 @@ const { sendCustomerAccountCreatedEmail } = require("../utils/mailer.util");
 const config = require("../config/config");
 const jwt = require('jsonwebtoken');
 
-const setAuthCookie = (res, token, maxAgeMs) => {
+const setAuthCookie = (res, token, maxAgeMs = 24 * 60 * 60 * 1000) => {
     res.cookie("token", token, {
         httpOnly: true,
         secure: false,
@@ -20,11 +20,10 @@ const buildAuthPayload = (user) => ({
     role: user.role
 });
 
-const issueSessionToken = (user, expiresIn) => jwt.sign(
-    buildAuthPayload(user),
-    config.JWT_SECRET_KEY,
-    { expiresIn }
-);
+const issueSessionToken = (user, expiresIn = (config.JWT_EXPIRE_IN || "1d")) => {
+    if(!config.JWT_SECRET_KEY) throw new Error("JWT_SECRET_KEY is missing");
+    return jwt.sign(buildAuthPayload(user), config.JWT_SECRET_KEY, { expiresIn });
+};
 
 const tryResolveExistingSession = async(req, expectedRole) => {
     const existingToken = req.cookies?.token;
@@ -257,7 +256,7 @@ const loginUser = async (req, res) => {
     const userSafe = foundUser.toObject();
     delete userSafe.password;
 
-    const jwtExpiresIn = rememberMe ? "1h" : "15m";
+    const jwtExpiresIn = rememberMe ? "1h" : "1m";
     const token = issueSessionToken(foundUser, jwtExpiresIn);
 
     // Optional but recommended: set cookie for BOTH cases, just different expiry
@@ -351,28 +350,15 @@ const loginAdmin = async (req, res) => {
             return res.status(403).json({ message: "Admin Access Only", success: false });
         }
 
+        if(!config.JWT_SECRET_KEY) {
+            console.error("JWT_SECRET_KEY is missing");
+            return res.status(500).json({ message: "Server misconfigured", success: false });
+        }
+
         const isPasswordCorrect = await comparison(password, foundUser.password);
         if(!isPasswordCorrect) {
             return res.status(403).json({ message: "User not authenticated!", success: false });
         }
-
-        // const token = jwt.sign(
-        //     {
-        //         userId: foundUser._id,
-        //         role: foundUser.role
-        //     },
-        //     config.JWT_SECRET_KEY,
-        //     {
-        //         expiresIn: config.JWT_EXPIRE_IN || "1d"
-        //     }
-        // );
-
-        // res.cookie("token", token, {
-        //     httpOnly: true,
-        //     secure: false,
-        //     sameSite: "lax",
-        //     maxAge: 24 * 60 * 60 * 1000
-        // });
 
         const token = issueSessionToken(foundUser);
         setAuthCookie(res, token);
@@ -383,7 +369,7 @@ const loginAdmin = async (req, res) => {
             success: true
         });
     } catch (error) {
-        console.log("An Error Occurred at loginAdmin()");
+        console.log("An Error Occurred at loginAdmin()", error?.message);
         res.status(500).json({ message: "Internal Server Error!", error });
     }
 }
@@ -437,7 +423,7 @@ const updateUser = async (req, res) => {
             return res.status(404).json({ message: "User not found!", success: false });
         }
 
-        if(req.user.role !== "Admin" && req.user.id !== id) {
+        if(req.user.role !== "Admin" && String(req.user.userId) !== String(id)) {
             return res.status(403).json({ message: "You are not allowed to update this user.", success: false });
         }
 
