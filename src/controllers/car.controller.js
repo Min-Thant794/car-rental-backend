@@ -1,65 +1,151 @@
 const carModel = require("../models/car.model");
 const { uploadImage, uploadImages, deleteImage} = require("../config/supabase");
 const config = require("../config/config");
+const bookingModel = require("../models/booking.model");
+
+const escapeRegex = (s = "") => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getAllCarModel = async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || "10", 10), 1), 15);
+    const skip = (page - 1) * limit;
+
+    const q = (req.query.q || "").trim();
+    const mode = (req.query.mode || "contains").toLowerCase();
+
+    const brand = (req.query.brand || "").trim();
+    const availabilityStatus = (req.query.availabilityStatus || "").trim();
+
+    const startDate = (req.query.startDate || "").trim();
+    const endDate = (req.query.endDate || "").trim();
+
+    const filter = {};
+
+    if (brand) filter.brand = brand;
+
+    const role = req.user?.role;
+
+    if (role === "Customer") {
+      filter.availabilityStatus = "Available";
+    } else {
+      if (availabilityStatus) filter.availabilityStatus = availabilityStatus;
+    }
+
+    // Search
+    if (q) {
+      const safeQ = escapeRegex(q);
+      filter.carName =
+        mode === "typeahead"
+          ? { $regex: `^${safeQ}`, $options: "i" }
+          : { $regex: safeQ, $options: "i" };
+    }
+
+    let conflictingCarIds = [];
+    if (startDate && endDate) {
+      const newStart = new Date(startDate);
+      const newEnd = new Date(endDate);
+
+      if (Number.isNaN(newStart.getTime()) || Number.isNaN(newEnd.getTime())) {
+        return res.status(400).json({ message: "Invalid startDate or endDate!", success: false });
+      }
+
+      if (newEnd <= newStart) {
+        return res.status(400).json({ message: "endDate must be after startDate!", success: false });
+      }
+
+      conflictingCarIds = await bookingModel.distinct("carId", {
+        bookingStatus: { $in: ["Pending", "Confirmed"] },
+        startDate: { $lte: newEnd },
+        endDate: { $gte: newStart }
+      });
+
+      if (conflictingCarIds.length) {
+        filter._id = { $nin: conflictingCarIds };
+      }
+    }
+
+    const sort = q && mode === "typeahead" ? { carName: 1 } : { createdAt: -1 };
+
+    const [cars, total] = await Promise.all([
+      carModel.find(filter).sort(sort).skip(skip).limit(limit),
+      carModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return res.status(200).json({
+      message: cars.length ? "Successfully fetched from MongoDB" : "No car model found!",
+      success: true,
+      data: cars,
+      count: cars.length,
+      total,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasPrev: page > 1,
+        hasNext: page < totalPages,
+      },
+      query: {
+        q,
+        mode,
+        brand,
+        availabilityStatus: filter.availabilityStatus ?? availabilityStatus,
+        startDate,
+        endDate
+      },
+    });
+  } catch (error) {
+    console.log("An Error Occurred at getAllCarModel()", error);
+    return res.status(500).json({ message: "Internal Server Error!", success: false });
+  }
+};
+
+const getCarByDiscount = async (req, res) => {
     try {
-        const page = Math.max(parseInt(req.query.page || "1", 10), 1);
-        const limit = Math.min(Math.max(parseInt(req.query.limit || "10", 10), 1), 15); //fetch 15 per request
-        const skip = (page - 1) * limit;
+        const discountedCar = await carModel.find({discount: {$gt: 0}}).limit(6);
 
-        const filter = {};
-        const sort = { createdAt: -1};
+        if(discountedCar.length === 0) {
+            return res.status(404).json({message: "No discounted car available", success: false});
+        }
 
-        const [cars, total] = await Promise.all([
-            carModel.find(filter).sort(sort).skip(skip).limit(limit),
-            carModel.countDocuments(filter),
-        ]);
+        return res.status(200).json({ message: "Discounted car fetched successfully!", success: true, data: discountedCar});
+    } catch (error) {
+        console.log("An Error Occurred at getCarByDiscount()", error);
+        res.status(500).json({ message: "Internal Server Error!", success: false});
+    }
+} 
 
-        if(cars.length === 0) {
+const getCarById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const car = await carModel.findById(id);
+
+        if(!car) {
             return res.status(404).json({
-                message: "No car model found!",
+                message: "Car not found",
                 success: false,
-                data: [],
-                pagination: {
-                    page,
-                    limit,
-                    total,
-                    totalPages: Math.ceil(total / limit) || 1,
-                    hasPrev: page > 1,
-                    hasNext: page < (Math.ceil(total / limit) || 1),
-                }
             });
         }
 
-        const totalPages = Math.ceil(total / limit)|| 1;
-
         return res.status(200).json({
-            message: "Successfully fetched from MongoDB",
             success: true,
-            data: cars,
-            count: cars.length,
-            total,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages,
-                hasPrev: page > 1,
-                hasNext: page < totalPages,
-            }
+            data: car
         });
     } catch (error) {
-        console.log("An Error Occurred at getAllCarModel()", error);
-        return res.status(500).json({ message: "Internal Server Error!", success: false });
+        console.log("An Error Occurred at getCarById()", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
     }
 }
 
 const createCarModel = async (req, res) => {
     try {
-        //console.log("HEADERS: ", req.headers["content-type"]);
-        //console.log("BODY: ", req.body);
-        //console.log("FILE: ", req.file);
         const {carName, description, fuelType, vehicleType, pricePerDay, discount, brand, availabilityStatus} = req.body;
         const carImageFile = req.file;
 
@@ -158,4 +244,4 @@ const deleteCarModel = async (req, res) => {
     }
 }
 
-module.exports = {getAllCarModel, createCarModel, updateCarModel, deleteCarModel};
+module.exports = {getAllCarModel, getCarById, getCarByDiscount, createCarModel, updateCarModel, deleteCarModel};

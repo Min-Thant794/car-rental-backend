@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const carModelSchema = new mongoose.Schema({
     carName: {
         type: String,
-        unique: true,
-        required: true
+        required: true,
+        index: true
     },
     description: {
         type: String,
@@ -18,7 +18,8 @@ const carModelSchema = new mongoose.Schema({
     fuelType: {
         type: String,
         enum: ["Diesel", "Electric", "Petrol"],
-        required: true
+        required: true,
+        index: true
     },
     vehicleType: {
         type: String,
@@ -42,12 +43,14 @@ const carModelSchema = new mongoose.Schema({
     },
     brand: {
         type: String,
-        required: true
+        required: true,
+        index: true
     },
     availabilityStatus: {
         type: String,
         enum: ["Available", "Unavailable", "Maintenance"],
-        default: "Available"
+        default: "Available",
+        index: true
     },
 }, {
     timestamps: true
