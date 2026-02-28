@@ -12,9 +12,13 @@ const getAllCarModel = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const q = (req.query.q || "").trim();
-    const mode = (req.query.mode || "contains").toLowerCase();
+    const mode = (req.query.mode || "contain").toLowerCase();
 
     const brand = (req.query.brand || "").trim();
+    const fuelType = (req.query.fuelType || "").trim();
+    const vehicleType = (req.query.vehicleType || "").trim();
+    const seaterRaw = (req.query.seater || "").trim();
+    const seater = seaterRaw ? Number(seaterRaw) : null;
     const availabilityStatus = (req.query.availabilityStatus || "").trim();
 
     const startDate = (req.query.startDate || "").trim();
@@ -23,6 +27,9 @@ const getAllCarModel = async (req, res) => {
     const filter = {};
 
     if (brand) filter.brand = brand;
+    if (fuelType) filter.fuelType = fuelType;
+    if (vehicleType) filter.vehicleType = vehicleType;
+    if (Number.isFinite(seater)) filter.seater = seater;
 
     const role = req.user?.role;
 
@@ -92,9 +99,12 @@ const getAllCarModel = async (req, res) => {
         q,
         mode,
         brand,
+        fuelType,
+        vehicleType,
+        seater,
         availabilityStatus: filter.availabilityStatus ?? availabilityStatus,
         startDate,
-        endDate
+        endDate,
       },
     });
   } catch (error) {
@@ -104,19 +114,62 @@ const getAllCarModel = async (req, res) => {
 };
 
 const getCarByDiscount = async (req, res) => {
-    try {
-        const discountedCar = await carModel.find({discount: {$gt: 0}}).limit(6);
+  try {
+    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+    const limitRaw = req.query.limit;
+    const limit = limitRaw === undefined ? 6 : Math.max(parseInt(limitRaw, 10), 0);
+    const skip = limit > 0 ? (page - 1) * limit : 0;
 
-        if(discountedCar.length === 0) {
-            return res.status(404).json({message: "No discounted car available", success: false});
-        }
+    const discountRaw = req.query.discount;
+    const discountNum = discountRaw !== undefined ? Number(discountRaw) : null;
 
-        return res.status(200).json({ message: "Discounted car fetched successfully!", success: true, data: discountedCar});
-    } catch (error) {
-        console.log("An Error Occurred at getCarByDiscount()", error);
-        res.status(500).json({ message: "Internal Server Error!", success: false});
+    const q = (req.query.q || "").trim();
+    const mode = (req.query.mode || "contain").toLowerCase();
+
+    const filter = {};
+
+    if (discountRaw !== undefined && Number.isFinite(discountNum)) {
+      filter.discount = discountNum;
+    } else {
+      filter.discount = { $gt: 0 };
     }
-} 
+
+    if (q) {
+      const safeQ = escapeRegex(q);
+      filter.carName =
+        mode === "typeahead"
+          ? { $regex: `^${safeQ}`, $options: "i" }
+          : { $regex: safeQ, $options: "i" };
+    }
+
+    const query = carModel.find(filter).sort({ discount: -1, createdAt: -1 });
+    if (limit > 0) query.skip(skip).limit(limit);
+
+    const [cars, total] = await Promise.all([
+      query,
+      carModel.countDocuments(filter),
+    ]);
+
+    if (cars.length === 0) {
+      return res.status(404).json({ message: "No discounted car available", success: false });
+    }
+
+    return res.status(200).json({
+      message: "Discounted cars fetched successfully!",
+      success: true,
+      data: cars,
+      pagination: limit > 0 ? {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      } : { total }
+    });
+  } catch (error) {
+    console.log("An Error Occurred at getDiscountedCars()", error);
+    return res.status(500).json({ message: "Internal Server Error!", success: false });
+  }
+};
 
 const getCarById = async (req, res) => {
     try {

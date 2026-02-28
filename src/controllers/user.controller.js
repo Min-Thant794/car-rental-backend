@@ -435,7 +435,7 @@ const updateUser = async (req, res) => {
             delete finalData.role;
         }
         
-        if(req.body.password && req.body.password.trim() !== "") {
+        if(typeof req.body.password === "string" && req.body.password.trim() !== "") {
             finalData.password = encryption(req.body.password);
         } else {
             delete finalData.password
@@ -482,11 +482,30 @@ const updateUser = async (req, res) => {
             }
 
             if(Object.keys(customerUpdate).length > 0) {
-                await customerModel.findOneAndUpdate(
-                    {userId: user._id},
-                    customerUpdate,
-                    {new: true, upsert: true}
-                );
+                if(customer) {
+                    await customerModel.findOneAndUpdate(
+                        {userId: user._id},
+                        customerUpdate,
+                        {new: true}
+                    );
+                } else {
+                    const missingFields = [];
+                    if(!customerUpdate.phoneNumber) missingFields.push("phoneNumber");
+                    if(!customerUpdate.dateOfBirth) missingFields.push("dateOfBirth");
+                    if(!customerUpdate.licenseImageUrl) missingFields.push("licenseImageUrl");
+
+                    if(missingFields.length > 0) {
+                        return res.status(400).json({
+                            message: `Customer profile is missing. Provide required fields to create it: ${missingFields.json(", ")}`,
+                            success: false
+                        });
+                    }
+
+                    await customerModel.create({
+                        userId: user._id,
+                        ...customerUpdate,
+                    });
+                }
             }
         }
 
