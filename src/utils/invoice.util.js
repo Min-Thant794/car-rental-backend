@@ -1,48 +1,47 @@
-const pdfDoc = require("pdfkit");
+const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 
 const generateInvoicePDF = (booking, user, car) => {
-    return new Promise((resolve, reject) => {
-        const doc = new pdfDoc({ size: "A4", margin: 50});
+  return new Promise((resolve, reject) => {
+    try {
+      const tempDir = path.join(__dirname, "../temp");
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
 
-        const filePath = path.join(
-            __dirname,
-            `../temp/invoice-${booking._id}.pdf`
-        );
+      const filePath = path.join(tempDir, `invoice-${booking._id}.pdf`);
 
-        const stream = fs.createWriteStream(filePath);
-        doc.pipe(stream);
+      const doc = new PDFDocument({ size: "A4", margin: 50 });
+      const stream = fs.createWriteStream(filePath);
 
-        //header
-        doc.fontSize(20).text("Let's Drive - Booling Invoice", { align: "center" });
-        doc.moveDown();
+      stream.on("finish", () => resolve(filePath));
+      stream.on("error", (err) => reject(err));
 
-        doc.fontSize(12).text(`Invoice ID: ${booking._id}`);
-        doc.text(`Customer:${user.userName}`);
-        doc.text(`Email: ${user.email}`);
-        doc.moveDown();
+      doc.pipe(stream);
 
-        //car details
-        doc.text(`Car: ${car.carName}`);
-        doc.text(`Brand: ${car.brand}`);
-        doc.moveDown();
+      doc.fontSize(20).text("Let's Drive - Booking Invoice", { align: "center" });
+      doc.moveDown();
+      doc.fontSize(12).text(`Invoice ID: ${booking._id}`);
+      doc.text(`Customer: ${user.userName}`);
+      doc.text(`Email: ${user.email}`);
+      doc.moveDown();
 
-        //booking details
-        doc.text(`Start Date: ${new Date(booking.startDate).toDateString()}`);
-        doc.text(`End Date: ${new Date(booking.endDate).toDateString()}`);
-        doc.moveDown();
+      doc.text(`Car: ${car.carName}`);
+      doc.text(`Brand: ${car.brand}`);
+      doc.moveDown();
 
-        //price
-        doc.fontSize(14).text(`Total Price: $${booking.totalPrice}`, {
-            aligh: "right"
-        });
+      doc.text(`Start Date: ${new Date(booking.startDate).toDateString()}`);
+      doc.text(`End Date: ${new Date(booking.endDate).toDateString()}`);
+      doc.moveDown();
 
-        doc.end();
+      doc.fontSize(14).text(`Total Price: $${booking.totalPrice}`, { align: "right" });
 
-        stream.on("finish", () => resolve(filePath));
-        stream.on("error", reject);
-    });
-}
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
 
 module.exports = { generateInvoicePDF };

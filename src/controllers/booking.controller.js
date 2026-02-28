@@ -12,8 +12,14 @@ const { recomputeCarAvailability } = require("../helper/recomputeCarAvailability
 const getAllBooking = async (req, res) => {
     try {
         const allBookings = await bookingModel.find()
-            .populate("customerId")
-            .populate("carId");
+            .populate({
+              path: "customerId",
+              populate: {
+                path: "userId",
+                select: "userName email"
+              }
+            })
+            .populate("carId", "carName");
 
         if(allBookings.length === 0) {
             return res.status(404).json({ data: [], message: "No Booking Found!", count: 0, success: false });
@@ -322,13 +328,8 @@ const updateBookingAdmin = async (req, res) => {
       return res.status(404).json({ message: "Booking not found!", success: false });
     }
 
-    if (["Expired", "Completed"].includes(booking.bookingStatus)) {
-      return res.status(400).json({ message: "This booking can no longer be modified!", success: false });
-    }
-
     const prevStatus = booking.bookingStatus;
 
-    // Optional: no-op update
     if (prevStatus === bookingStatus) {
       return res.status(200).json({
         message: "Booking status unchanged.",
