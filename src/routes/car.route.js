@@ -5,8 +5,8 @@ const upload = require("../config/multer");
 const auth = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 
-router.get("/", auth, getAllCarModel);
-router.get("/discount-car", auth, getCarByDiscount);
+router.get("/", getAllCarModel);
+router.get("/discount-car", getCarByDiscount);
 router.get("/:id", auth, getCarById);
 router.post("/create-car", auth, adminOnly, upload.single("carImageUrl"), createCarModel);
 router.put("/:id", auth, adminOnly, upload.single("carImageUrl"), updateCarModel);

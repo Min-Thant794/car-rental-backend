@@ -42,7 +42,8 @@ const getMyBooking = async(req, res) => {
 
         const myBookings = await bookingModel
             .find({ customerId: customer._id })
-            .populate("carId");
+            .populate("carId")
+            .sort({ createdAt: -1 });
 
         if(myBookings.length === 0) {
             return res.status(404).json({ message: "No Booking Found!", success: false });
@@ -205,12 +206,28 @@ const updateMyBooking = async (req, res) => {
     const now = new Date();
 
     // If booking already started, no changes
-    if (booking.startDate <= now) {
-      return res.status(400).json({ message: "Booking already started and cannot be modified", success: false });
+    const startDay = new Date(booking.startDate);
+      startDay.setHours(0,0,0,0);
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      // if today is the pickup day or after, block
+      if (startDay <= today) {
+        return res.status(400).json({
+          message: "Booking already started and cannot be modified",
+          success: false
+        });
+      }
+
+    const normalizeLocalMidnight = (d) => {
+      const x = new Date(d);
+      x.setHours(0, 0, 0, 0);
+      return x;
     }
 
-    const newStartDate = startDate ? new Date(startDate) : booking.startDate;
-    const newEndDate = endDate ? new Date(endDate) : booking.endDate;
+    const newStartDate = startDate ? normalizeLocalMidnight(startDate) : normalizeLocalMidnight(booking.startDate);
+    const newEndDate   = endDate   ? normalizeLocalMidnight(endDate)   : normalizeLocalMidnight(booking.endDate);
 
     if (Number.isNaN(newStartDate.getTime()) || Number.isNaN(newEndDate.getTime())) {
       return res.status(400).json({ message: "Invalid date format", success: false });
@@ -290,7 +307,6 @@ const updateMyBooking = async (req, res) => {
   }
 };
 
-
 const updateBookingAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -363,45 +379,107 @@ const updateBookingAdmin = async (req, res) => {
   }
 };
 
-const deleteMyBooking = async(req, res) => {
-    try {
-        const { id } = req.params;
-        const customer = await customerModel.findOne({ userId: req.user?.userId });
-        
-        if(!customer) return res.status(404).json({ message: "Customer profile not found!", success: false });
+const cancelMyBooking = async (req, res) => {
+  let bookingLock;
+  try {
+    const { id } = req.params;
 
-        const booking = await bookingModel.findById(id);
-
-        if(!booking) {
-            return res.status(404).json({ message: "Booking not found!", success: false });
-        }
-
-        if(booking.customerId.toString() !== customer._id.toString()) {
-            return res.status(403).json({ message: "You are not allowed to delete this booking.", success: false });
-        }
-
-        if(booking.bookingStatus === "Confirmed") {
-            return res.status(400).json({ message: "You cannot delete your booking once confirmed!", success: false });
-        }
-
-        booking.bookingStatus = "Cancelled";
-        await booking.save();
-
-        const io = getIo();
-        if(io) {
-            io.emit("booking-status-updated", {
-                bookingId: booking._id,
-                carId: booking.carId,
-                bookingStatus: booking.bookingStatus
-            });
-        }
-
-        return res.status(200).json({ message: "Booking cancelled successfully!", success: true });
-    } catch (error) {
-        console.log("An Error Occurred at deleteMyBooking()", error);
-        return res.status(500).json({ message: "Internal Server Error!", success: false });
+    const customer = await customerModel.findOne({ userId: req.user.userId});
+    if(!customer) {
+      return res.status(404).json({ message: "Customer profile not found!", success: false });
     }
+
+    const booking = await bookingModel.findById(id);
+    if(!booking) {
+      return res.status(404).json({ message: "Booking not found!", success: false });
+    }
+
+    if(booking.customerId.toString() !== customer._id.toString()) {
+      return res.status(403).json({ message: "You cannot cancel this booking", success: false });
+    }
+
+    const blockedStatuses = ["Expired", "Confirmed", "Completed", "Cancelled"];
+    if (blockedStatuses.includes(booking.bookingStatus)) {
+      return res.status(400).json({
+        message: `This booking is already ${booking.bookingStatus} and cannot be cancelled.`,
+        success: false
+      });
+    }
+
+    const now = new Date();
+
+    if(booking.startDate <= now) {
+      return res.status(400).json({ message: "Booking already started and cannot be modified", success: false });
+    }
+
+    const lockKey = `lock:booking:cancel:${booking._id}`;
+    bookingLock = await acquireLock(lockKey);
+    if(!bookingLock) {
+      return res.status(409).json({ message: "Booking cancellation is currently being processed. Please try again.", success: false });
+    }
+
+    booking.bookingStatus = "Cancelled";
+    await booking.save();
+
+    const io = getIo();
+    if(io) {
+      io.emit("booking:cancelled", {
+        bookingId: booking._id,
+        carId: booking.carId,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        bookingStatus: booking.bookingStatus
+      });
+    }
+
+    return res.status(200).json({ message: "Booking cancelled successfully!", success: true, data: booking});
+  } catch (error) {
+    console.log("An Error Occurred at cancelMyBooking()", error);
+    return res.status(500).json({ message: "Internal Server Error!", success: false });
+  } finally {
+    if(bookingLock) await releaseLock(bookingLock);
+  }
 }
+
+// const deleteMyBooking = async(req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const customer = await customerModel.findOne({ userId: req.user?.userId });
+        
+//         if(!customer) return res.status(404).json({ message: "Customer profile not found!", success: false });
+
+//         const booking = await bookingModel.findById(id);
+
+//         if(!booking) {
+//             return res.status(404).json({ message: "Booking not found!", success: false });
+//         }
+
+//         if(booking.customerId.toString() !== customer._id.toString()) {
+//             return res.status(403).json({ message: "You are not allowed to delete this booking.", success: false });
+//         }
+
+//         if(booking.bookingStatus === "Confirmed") {
+//             return res.status(400).json({ message: "You cannot delete your booking once confirmed!", success: false });
+//         }
+
+//         booking.bookingStatus = "Cancelled";
+//         await booking.save();
+
+//         const io = getIo();
+//         if(io) {
+//             io.emit("booking-status-updated", {
+//                 bookingId: booking._id,
+//                 carId: booking.carId,
+//                 bookingStatus: booking.bookingStatus
+//             });
+//         }
+
+//         return res.status(200).json({ message: "Booking cancelled successfully!", success: true });
+//     } catch (error) {
+//         console.log("An Error Occurred at deleteMyBooking()", error);
+//         return res.status(500).json({ message: "Internal Server Error!", success: false });
+//     }
+// }
 
 const deleteBooking = async(req, res) => {
     try {
@@ -425,4 +503,4 @@ const deleteBooking = async(req, res) => {
     }
 }
 
-module.exports = {getAllBooking, getMyBooking, createBooking, updateMyBooking, updateBookingAdmin, deleteMyBooking, deleteBooking};
+module.exports = {getAllBooking, getMyBooking, createBooking, updateMyBooking, updateBookingAdmin, cancelMyBooking, deleteBooking};
