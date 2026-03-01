@@ -28,11 +28,11 @@ const connectRedis = async () => {
             console.log("Redis successfully connected!");
         }
 
-        return client; // ✅ THIS WAS MISSING
+        return client;
 
     } catch (error) {
         console.log("An error occurred while connecting Redis!", error);
-        throw error; // let caller know connection failed
+        throw error;
     }
 };
 
