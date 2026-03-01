@@ -2,8 +2,8 @@ const bookingModel = require("../models/booking.model");
 const carModel = require("../models/car.model");
 const customerModel = require("../models/customer.model");
 const userModel = require("../models/user.model");
-const { sendBookingConfirmedEmail } = require("../utils/mailer.util");
-const fs = require("fs");
+const { sendBookingConfirmedEmail, sendBookingCancelledEmail } = require("../utils/mailer.util");
+const fs = require("fs/promises");
 const { generateInvoicePDF } =  require("../utils/invoice.util");
 const { acquireLock, releaseLock } = require("../utils/redisLock.util");
 const { getIo } = require("../utils/socket");
@@ -19,7 +19,8 @@ const getAllBooking = async (req, res) => {
                 select: "userName email"
               }
             })
-            .populate("carId", "carName");
+            .populate("carId", "carName")
+            .sort({ createdAt: -1 });
 
         if(allBookings.length === 0) {
             return res.status(404).json({ data: [], message: "No Booking Found!", count: 0, success: false });
@@ -350,12 +351,23 @@ const updateBookingAdmin = async (req, res) => {
         const car = await carModel.findById(updatedBooking.carId);
 
         if (user && car) {
-          const invoicePath = await generateInvoicePDF(updatedBooking, user, car);
           try {
+            const invoicePath = await generateInvoicePDF(updatedBooking, user, car);
             await sendBookingConfirmedEmail(user.email, updatedBooking, car, invoicePath);
-          } finally {
             await fs.unlink(invoicePath).catch(() => {});
+          } catch (emailError) {
+            console.log("Booking confirmed but confirmation email failed:", emailError);
           }
+        }
+      }
+    } else {
+      const customer = await customerModel.findById(updatedBooking.customerId);
+      if(customer) {
+        const user = await userModel.findById(customer.userId);
+        const car = await carModel.findById(updatedBooking.carId);
+
+        if(user && car) {
+          await sendBookingCancelledEmail(user.email, updatedBooking, car);
         }
       }
     }
