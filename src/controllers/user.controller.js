@@ -5,6 +5,7 @@ const { uploadImage, deleteImage } = require("../config/supabase");
 const { sendCustomerAccountCreatedEmail } = require("../utils/mailer.util");
 const config = require("../config/config");
 const jwt = require('jsonwebtoken');
+const { type } = require('os');
 
 const setAuthCookie = (res, token, maxAgeMs = 24 * 60 * 60 * 1000) => {
     res.cookie("token", token, {
@@ -147,12 +148,12 @@ const registerUser = async (req, res) => {
 
             if(isAdminAction) {
                 const resetToken = jwt.sign(
-                    {userId: user._id},
-                    config.JWT_SECRET_KEY,
+                    {userId: user._id, type: "reset"},
+                    config.RESET_PASSWORD_SECRET || config.JWT_SECRET_KEY,
                     {expiresIn: '2h'}
                 );
 
-                const clientAppUrl = config.CLIENT_APP_URL || 'http://localhost:4040';
+                const clientAppUrl = config.CLIENT_APP_URL;
                 const resetLink = `${clientAppUrl}/reset-password?token=${resetToken}`;
 
                 await sendCustomerAccountCreatedEmail(
@@ -195,13 +196,11 @@ const resetPassword = async (req, res) => {
         }
 
         let decoded;
-        try {
-            decoded = jwt.verify(token, config.JWT_SECRET_KEY);
-        } catch (error) {
-            return res.status(401).json({
-                message: "Password reset link is invalid or has expired.",
-                success: false
-            });
+
+        decoded = jwt.verify(token, config.RESET_PASSWORD_SECRET || config.JWT_SECRET_KEY);
+
+        if(decoded.type && decoded.type !== "reset") {
+            return res.status(401).json({ message: "Invalid reset token.", success: false });
         }
 
         const user = await userModel.findById(decoded.userId);

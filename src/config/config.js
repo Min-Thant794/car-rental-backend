@@ -6,6 +6,7 @@ const config = {
     CLIENT_APP_URL: process.env.CLIENT_APP_URL,
     SECRET_KEY : process.env.SECRET_KEY,
     JWT_SECRET_KEY : process.env.JWT_SECRET_KEY,
+    RESET_PASSWORD_SECRET: process.env.RESET_PASSWORD_SECRET,
     JWT_EXPIRE_IN : process.env.JWT_EXPIRE_IN,
     SUPABASE_URL : process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE : process.env.SUPABASE_SERVICE_ROLE,
