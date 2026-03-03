@@ -47,6 +47,10 @@ const getMyBooking = async(req, res) => {
             return res.status(404).json({ message: "Customer profile not found!", success: false });
         }
 
+        if(customer.verificationStatus !== "verified") {
+          return res.status(401).json({ message: "Only verified customer can access booking", success: false });
+        }
+
         const myBookings = await bookingModel
             .find({ customerId: customer._id })
             .populate("carId")

@@ -209,8 +209,15 @@ const resetPassword = async (req, res) => {
         }
 
         const hashedPassword = encryption(newPassword);
-
         user.password = hashedPassword;
+
+        const customer = await customerModel.findOne({ userId: user._id });
+
+        if(customer && customer.verificationStatus === "pending") {
+            customer.verificationStatus = "verified";
+            await customer.save();
+        }
+
         await user.save();
 
         return res.status(200).json({ message: "Password has been successfully reset!", success: true });
@@ -218,7 +225,7 @@ const resetPassword = async (req, res) => {
         console.log("An Error Occurred at resetPassword()", error);
         return res.status(500).json({ message: "Internal Server Error", success: false });
     }
-}
+};
 
 const loginUser = async (req, res) => {
   try {

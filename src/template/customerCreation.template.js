@@ -11,7 +11,6 @@ const customerAccountCreation = (userName, password, resetLink) => `
 
         <h3>Your Account Details</h3>
         <p><b>Username:</b> ${userName}</p>
-        <p><b>Temporary Password:</b> ${password}</p>
 
         <p>For security reasons, we highly recommend changing your temporary password immediately. Click the button below to set a new password. <b>Please note that this link will expire in 2 hours.</b></p>
         
