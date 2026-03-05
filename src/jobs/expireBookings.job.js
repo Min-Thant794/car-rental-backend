@@ -5,10 +5,11 @@ const { getIo } = require("../utils/socket");
 cron.schedule("* * * * *", async () => {
   try {
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    
+    const oneHourLater = new Date(now.getTime() - 60 * 60 * 1000);
 
     const result = await bookingModel.updateMany(
-      { bookingStatus: "Pending", endDate: { $lte: now } },
+      { bookingStatus: "Pending", startDate: { $lte: oneHourLater } },
       { $set: { bookingStatus: "Expired" } }
     );
 

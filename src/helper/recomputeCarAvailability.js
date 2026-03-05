@@ -16,6 +16,7 @@ const recomputeCarAvailability = async (carId) => {
     const activeBookingExists = await bookingModel.exists({
       carId: car._id,
       bookingStatus: { $in: ["Pending", "Confirmed"] },
+      startDate: { $lte: now },
       endDate: { $gt: now },
     });
 

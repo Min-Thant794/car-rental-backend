@@ -5,7 +5,6 @@ const { uploadImage, deleteImage } = require("../config/supabase");
 const { sendCustomerAccountCreatedEmail } = require("../utils/mailer.util");
 const config = require("../config/config");
 const jwt = require('jsonwebtoken');
-const { type } = require('os');
 
 const setAuthCookie = (res, token, maxAgeMs = 24 * 60 * 60 * 1000) => {
     res.cookie("token", token, {
