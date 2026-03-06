@@ -4,9 +4,6 @@ const { getAllUsers, registerUser, resetPassword, loginUser, getCurrentUser, log
 const upload= require("../config/multer");
 const auth = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
-const userModel = require('../models/user.model');
-const isCustomer = require('../middleware/customerAccess');
-//const customerAccess = require("../middleware/customerAccess");
 
 router.post("/", upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
 router.post("/user-create-by-admin", auth, adminOnly, upload.fields([{ name: "profileImageUrl", maxCount: 1}, { name: "licenseImageUrl", maxCount: 1}]), registerUser);
