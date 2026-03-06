@@ -7,10 +7,10 @@ const verifiedCustomerOnly = async(req, res, next) => {
             return res.status(403).json({ message: "Only customers can perform this action", success: false} );
         }
 
-        console.log("req.user =", req.user);
-        console.log("req.user.id =", req.user?.id);
-        console.log("req.user._id =", req.user?._id);
-        console.log("req.user.userId =", req.user?.userId);
+        // console.log("req.user =", req.user);
+        // console.log("req.user.id =", req.user?.id);
+        // console.log("req.user._id =", req.user?._id);
+        // console.log("req.user.userId =", req.user?.userId);
         const customer = await customerModel.findOne({ userId: req.user?.userId });
         if(!customer) {
             return res.status(404).json({ message: "Customer profile not found!", success: false });
