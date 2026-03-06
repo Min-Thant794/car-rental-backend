@@ -199,7 +199,7 @@ const getCarById = async (req, res) => {
 
 const createCarModel = async (req, res) => {
     try {
-        const {carName, description, fuelType, vehicleType, pricePerDay, discount, brand, availabilityStatus} = req.body;
+        const {carName, description, fuelType, vehicleType, seater, pricePerDay, discount, brand, availabilityStatus} = req.body;
         const carImageFile = req.file;
 
         const safePrice = Number(pricePerDay);
@@ -216,6 +216,7 @@ const createCarModel = async (req, res) => {
             description,
             fuelType,
             vehicleType,
+            seater,
             carImageUrl,
             pricePerDay: safePrice,
             discount: safeDiscount,
