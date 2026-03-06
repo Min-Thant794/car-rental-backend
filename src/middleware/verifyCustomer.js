@@ -1,4 +1,3 @@
-const userModel = require("../models/user.model");
 const customerModel = require("../models/customer.model");
 
 const verifiedCustomerOnly = async(req, res, next) => {
