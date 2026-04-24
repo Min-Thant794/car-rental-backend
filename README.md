@@ -225,21 +225,21 @@ Authorization: Bearer <your_token>
 ## 🏗️ System Architecture
 
 ```
-┌──────────────────────┐        ┌──────────────────────┐
-│    Customer UI        │        │   Admin Dashboard     │
-│  (React + Tailwind)   │        │  (React + Tailwind)   │
+┌──────────────────────┐        ┌───────────────────────┐
+│    Customer UI       │        │   Admin Dashboard     │
+│  (React + Tailwind)  │        │  (React + Tailwind)   │
 └────────┬─────────────┘        └────────────┬──────────┘
          │                                   │
          │              REST API             │
          └──────────────────┬────────────────┘
                             │
                   ┌─────────▼─────────┐
-                  │    Backend API     │
-                  │  (Node + Express)  │
+                  │    Backend API    │
+                  │  (Node + Express) │
                   └─────────┬─────────┘
                             │
                   ┌─────────▼─────────┐
-                  │      MongoDB       │
+                  │      MongoDB      │
                   └───────────────────┘
 ```
 
