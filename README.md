@@ -19,8 +19,12 @@
 ## 📌 Overview
 
 This repository is the **Backend API** — the single server powering both the Customer UI and the Admin Dashboard. It handles all business logic, authentication, data persistence, and file uploads through a structured RESTful API built with Node.js and Express.
-
-All sensitive routes are protected with JWT-based middleware and role-based access control, ensuring customers and admins only access what they are permitted to.
+ 
+The backend follows an **MVC-inspired architecture**, with a clear separation between routes, controllers, models, and middleware. All data is stored in MongoDB and accessed through Mongoose ODM, keeping the data layer clean and schema-driven.
+ 
+Authentication is handled using **JWT tokens**, stored and cleared via HTTP-only cookies using `cookie-parser` — providing a secure and seamless session experience. Role-based middleware (`adminOnly`, `customerAccess`, `verifiedCustomerOnly`) ensures that every endpoint is accessible only to the right type of user.
+ 
+The server also supports **multi-file image uploads** via Multer — handling profile pictures, driving licence images, and car images — and includes background job support, reusable helpers, and email/document templating utilities to support real-world functionality beyond basic CRUD.
 
 ---
 
