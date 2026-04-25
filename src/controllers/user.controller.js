@@ -11,7 +11,7 @@ const isProduction = config.NODE_ENV === "production";
 const setAuthCookie = (res, token, maxAgeMs = 24 * 60 * 60 * 1000) => {
     res.cookie("token", token, {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: isProduction ? "none" : "lax",
         maxAge: maxAgeMs
     });
