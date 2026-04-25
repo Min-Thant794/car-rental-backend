@@ -4,6 +4,7 @@ const config = {
     PORT : process.env.PORT || 8100,
     MONGODB_URL : process.env.MONGODB_URL,
     CLIENT_APP_URL: process.env.CLIENT_APP_URL,
+    NODE_ENV: process.env.NODE_ENV,
     SECRET_KEY : process.env.SECRET_KEY,
     JWT_SECRET_KEY : process.env.JWT_SECRET_KEY,
     RESET_PASSWORD_SECRET: process.env.RESET_PASSWORD_SECRET,

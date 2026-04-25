@@ -6,11 +6,13 @@ const { sendCustomerAccountCreatedEmail } = require("../utils/mailer.util");
 const config = require("../config/config");
 const jwt = require('jsonwebtoken');
 
+const isProduction = config.NODE_ENV === "production";
+
 const setAuthCookie = (res, token, maxAgeMs = 24 * 60 * 60 * 1000) => {
     res.cookie("token", token, {
         httpOnly: true,
         secure: false,
-        sameSite: "lax",
+        sameSite: isProduction ? "none" : "lax",
         maxAge: maxAgeMs
     });
 };
