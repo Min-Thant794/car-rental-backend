@@ -28,8 +28,8 @@ const allowedOrigins = [
     "http://localhost:4173",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:4173",
-    "https://my-project-kohl-rho.vercel.app/",
-    "https://www.shopping-pwa.com/"
+    "https://my-project-kohl-rho.vercel.app",
+    "https://www.shopping-pwa.com"
 ];
 
 const corsOptions = {
