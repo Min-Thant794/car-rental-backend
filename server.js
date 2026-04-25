@@ -29,7 +29,8 @@ const allowedOrigins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:4173",
     "https://my-project-kohl-rho.vercel.app",
-    "https://www.shopping-pwa.com"
+    "https://www.shopping-pwa.com",
+    "https://car-rental-admin-psi.vercel.app"
 ];
 
 const corsOptions = {
